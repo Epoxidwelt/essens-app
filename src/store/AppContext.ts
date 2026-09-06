@@ -21,6 +21,8 @@ export interface AppContextValue {
   state: AppState;
   ready: boolean;
   sync: SyncStatus;
+  /** true, wenn das lokale Speichern zuletzt fehlgeschlagen ist (z. B. Speicher voll). */
+  speicherFehler: boolean;
   /* Rezepte: eingebaut + selbst hinzugefügt, zusammengeführt */
   recipes: Recipe[];
   getRecipe: (id: string) => Recipe | undefined;

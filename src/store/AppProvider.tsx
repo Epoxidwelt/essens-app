@@ -13,6 +13,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(createInitialState);
   const [ready, setReady] = useState(false);
   const [sync, setSync] = useState<SyncStatus>({ state: 'aus', lastSyncAt: null });
+  /** true, wenn das lokale Speichern zuletzt fehlgeschlagen ist (z. B. Speicher voll). */
+  const [speicherFehler, setSpeicherFehler] = useState(false);
   const loaded = useRef(false);
   /** Zuletzt vom Server bestaetigte Version – erkennt Aenderungen anderer Geraete. */
   const serverVersion = useRef<number | null>(null);
@@ -110,8 +112,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [abgleichen]);
 
   // Jede Aenderung sofort lokal sichern – Favoriten & Bewertungen ueberleben den Neustart.
+  // Schlaegt das fehl (z. B. Speicher voll durch Fotos bei eigenen Rezepten),
+  // wird das sichtbar gemacht statt den Datenverlust stillschweigend zu riskieren.
   useEffect(() => {
-    if (loaded.current) repository.save(state);
+    if (!loaded.current) return;
+    let aktuell = true;
+    void repository.save(state).then((erfolgreich) => {
+      if (aktuell) setSpeicherFehler(!erfolgreich);
+    });
+    return () => {
+      aktuell = false;
+    };
   }, [state]);
 
   // ... und kurz darauf zum Familien-Server schicken (gebuendelt).
@@ -418,6 +429,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       ready,
       sync,
+      speicherFehler,
       recipes,
       getRecipe,
       getIngredient,
@@ -450,6 +462,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       ready,
       sync,
+      speicherFehler,
       recipes,
       getRecipe,
       getIngredient,

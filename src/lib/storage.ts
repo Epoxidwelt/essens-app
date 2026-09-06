@@ -11,7 +11,8 @@ import type { AppState } from '../types';
  */
 export interface StateRepository {
   load(): Promise<AppState | null>;
-  save(state: AppState): Promise<void>;
+  /** Liefert false, wenn das Speichern fehlgeschlagen ist (z. B. Speicher voll). */
+  save(state: AppState): Promise<boolean>;
   clear(): Promise<void>;
 }
 
@@ -28,11 +29,14 @@ export class LocalStorageRepository implements StateRepository {
     }
   }
 
-  async save(state: AppState): Promise<void> {
+  async save(state: AppState): Promise<boolean> {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return true;
     } catch {
-      /* ignorieren */
+      // Meist: Speicher voll (viele Fotos bei eigenen Rezepten) oder privater Modus.
+      // Der Aufrufer zeigt dem Nutzer in diesem Fall eine Warnung.
+      return false;
     }
   }
 
