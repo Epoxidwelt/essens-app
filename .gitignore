@@ -1,0 +1,17 @@
+# Abhängigkeiten und Bauergebnisse
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Zugangsdaten – gehören niemals ins Repository
+.env
+.env.local
+
+# Gemeinsame Familiendaten des Servers (Einkaufsliste, Favoriten ...)
+server/daten/
+
+# Werkzeug-Konfiguration mit lokalen Pfaden
+.claude/
+
+# macOS
+.DS_Store

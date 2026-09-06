@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Dauerbetrieb auf einem Mac (launchd), falls der Familienrechner ein Mac ist.
+
+  1. PFAD, Passwort und Node-Pfad anpassen (Node-Pfad findest du mit: which node)
+  2. Kopieren:   cp de.essensapp.server.plist ~/Library/LaunchAgents/
+  3. Starten:    launchctl load -w ~/Library/LaunchAgents/de.essensapp.server.plist
+  4. Beenden:    launchctl unload -w ~/Library/LaunchAgents/de.essensapp.server.plist
+
+  Wichtig: Der Mac darf nicht in den Ruhezustand gehen, sonst ist die App
+  zwischendurch nicht erreichbar (Systemeinstellungen → Batterie/Energie).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>de.essensapp.server</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>server/serve.mjs</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/PFAD/ZU/essens-app</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PORT</key>
+    <string>5190</string>
+    <key>ESSENS_PASSWORT</key>
+    <string>HIER-EUER-FAMILIENPASSWORT</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/tmp/essens-app.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/essens-app.fehler.log</string>
+</dict>
+</plist>

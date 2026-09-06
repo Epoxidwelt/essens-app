@@ -1,0 +1,35 @@
+# Dauerbetrieb auf einem Linux-Server (systemd).
+#
+# 1. Datei anpassen: BENUTZER, PFAD und Passwort eintragen
+# 2. Kopieren:   sudo cp essens-app.service /etc/systemd/system/
+# 3. Aktivieren: sudo systemctl daemon-reload
+#                sudo systemctl enable --now essens-app
+# 4. Prüfen:     systemctl status essens-app
+#                journalctl -u essens-app -f
+#
+# Danach startet die App automatisch mit dem Server und wird nach einem
+# Absturz oder Neustart von selbst wieder hochgefahren.
+
+[Unit]
+Description=Essens App – Familien-Server
+After=network.target
+
+[Service]
+Type=simple
+User=BENUTZER
+WorkingDirectory=/PFAD/ZU/essens-app
+Environment=PORT=5190
+Environment=ESSENS_PASSWORT=HIER-EUER-FAMILIENPASSWORT
+ExecStart=/usr/bin/node server/serve.mjs
+Restart=always
+RestartSec=5
+
+# Etwas Absicherung: der Dienst darf nur in seinen eigenen Datenordner schreiben.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/PFAD/ZU/essens-app/server/daten
+
+[Install]
+WantedBy=multi-user.target

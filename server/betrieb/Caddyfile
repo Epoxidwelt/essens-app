@@ -1,0 +1,25 @@
+# Verschlüsselte Verbindung (HTTPS) für den Zugriff von unterwegs.
+#
+# Caddy ist ein kleiner Webserver, der sich das Zertifikat automatisch und
+# kostenlos bei Let's Encrypt holt und danach von allein erneuert. Er läuft auf
+# eurem eigenen Server – kein fremder Dienst bekommt eure Daten zu sehen.
+#
+# 1. Domain eintragen (muss per DNS auf den Server zeigen)
+# 2. Kopieren:  sudo cp Caddyfile /etc/caddy/Caddyfile
+# 3. Neu laden: sudo systemctl reload caddy
+#
+# Danach ist die App unter https://essen.eure-domain.de erreichbar –
+# das Familienpasswort wird dann verschlüsselt übertragen.
+
+essen.eure-domain.de {
+    reverse_proxy localhost:5190
+
+    encode gzip
+
+    # Die App darf nicht in fremde Seiten eingebettet werden.
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "same-origin"
+    }
+}
