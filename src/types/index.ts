@@ -128,6 +128,8 @@ export interface Recipe {
   kidFriendly: boolean;
   onePot: boolean;
   tips?: string;
+  /** Gesetzt, wenn das Rezept aus einem YouTube-Video übernommen wurde. */
+  videoUrl?: string;
   /** Nur bei selbst hinzugefügten Rezepten gesetzt – dient dem Geräte-Abgleich. */
   createdAt?: string;
   updatedAt?: string;

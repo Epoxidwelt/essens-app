@@ -66,6 +66,11 @@ Weitere Befehle:
   Formular angezeigt und lässt sich korrigieren. Eigene Rezepte tauchen
   gleichwertig neben den mitgelieferten auf, ihre Zutaten zählen bei der
   Einkaufsliste ganz normal mit
+- **📺 Rezept aus YouTube-Video**: Link einfügen — Titel und Vorschaubild werden
+  automatisch geholt (kein Server nötig). Da der Browser weder Beschreibung
+  noch Untertitel eines Videos automatisch lesen darf, wird der Beschreibungstext
+  (meist mit Zutaten/Zubereitung) per Copy-Paste aus dem YouTube-Beschreibungsfeld
+  eingefügt und genauso automatisch zerlegt wie bei Foto/PDF
 - **Rezeptdetails** mit Nährwerten, Zutaten, Schritt-für-Schritt-Anleitung (Schritte
   lassen sich beim Kochen abhaken) und Portionsrechner
 - **Portionen ändern**: alle Mengen werden automatisch umgerechnet und
@@ -112,6 +117,7 @@ essens-app/
 │   │   ├── shopping.ts       Einkaufsliste: Zusammenrechnen, Gruppieren, Teilen
 │   │   ├── filters.ts        Filter und Textsuche
 │   │   ├── recipes.ts        Mitgelieferte + eigene Rezepte zusammenführen
+│   │   ├── youtube.ts        YouTube-Link erkennen, Titel/Vorschaubild holen
 │   │   ├── textExtraction.ts Text aus Foto/PDF lesen (Tesseract.js, pdf.js)
 │   │   ├── recipeTextStructure.ts  Erkannten Text in Titel/Zutaten/Schritte teilen
 │   │   ├── ingredientParsing.ts    Freitext-Zutat → strukturierte Zutat
@@ -139,7 +145,7 @@ essens-app/
 │   ├── test-server.mjs       22 Prüfungen der Anmeldung und Absicherung
 │   └── betrieb/              Vorlagen: systemd, launchd, HTTPS (Caddy)
 ├── supabase/                 Optional: Datenbank in der Cloud (nicht nötig)
-└── test/                     71 Tests der Kernlogik (Rezepte, Einkaufsliste,
+└── test/                     79 Tests der Kernlogik (Rezepte, Einkaufsliste,
                               Zutaten-Erkennung, Text-Erkennung, Geräte-Abgleich)
 ```
 

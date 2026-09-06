@@ -4,10 +4,11 @@ import type { Ingredient, RecipeCategory, RecipeIngredient } from '../types';
 import { erkenneRezept } from '../lib/textExtraction';
 import { strukturiereRezeptText } from '../lib/recipeTextStructure';
 import { parseZutatenText } from '../lib/ingredientParsing';
+import { holeVideoInfo, type YoutubeVideoInfo } from '../lib/youtube';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../components/Toast';
 
-type Schritt = 'start' | 'liest' | 'formular';
+type Schritt = 'start' | 'liest' | 'youtube' | 'formular';
 
 const TONES = ['green', 'tomato', 'sun', 'berry', 'cream', 'herb'] as const;
 
@@ -39,6 +40,14 @@ export function AddRecipe() {
   const [ohneZucker, setOhneZucker] = useState(true);
   const [kinderfreundlich, setKinderfreundlich] = useState(true);
   const [onePot, setOnePot] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
+
+  // YouTube-Zwischenschritt
+  const [ytEingabe, setYtEingabe] = useState('');
+  const [ytLaedt, setYtLaedt] = useState(false);
+  const [ytInfo, setYtInfo] = useState<YoutubeVideoInfo | null>(null);
+  const [ytFehler, setYtFehler] = useState<string | null>(null);
+  const [ytBeschreibung, setYtBeschreibung] = useState('');
 
   function formularVorbefuellen(erkannterText: string) {
     const struktur = strukturiereRezeptText(erkannterText);
@@ -61,6 +70,7 @@ export function AddRecipe() {
         setFortschrittText(text);
       });
       setBild(ergebnis.vorschaubild);
+      setVideoUrl(undefined);
       formularVorbefuellen(ergebnis.text);
       setSchritt('formular');
     } catch (e) {
@@ -71,12 +81,55 @@ export function AddRecipe() {
 
   function vonHandStarten() {
     setBild(undefined);
+    setVideoUrl(undefined);
     setName('');
     setBeschreibung('');
     setZutatenText('');
     setZubereitungText('');
     setHinweisUngenau(false);
     setFehler(null);
+    setSchritt('formular');
+  }
+
+  function youtubeStarten() {
+    setYtEingabe('');
+    setYtInfo(null);
+    setYtFehler(null);
+    setYtBeschreibung('');
+    setFehler(null);
+    setSchritt('youtube');
+  }
+
+  async function videoSuchen() {
+    if (!ytEingabe.trim()) return;
+    setYtLaedt(true);
+    setYtFehler(null);
+    setYtInfo(null);
+    const info = await holeVideoInfo(ytEingabe);
+    setYtLaedt(false);
+    if (!info) {
+      setYtFehler(
+        'Video nicht gefunden. Bitte den Link prüfen – trotzdem lässt sich unten von Hand weitermachen.',
+      );
+      return;
+    }
+    setYtInfo(info);
+  }
+
+  /** Übernimmt Titel/Vorschaubild des Videos und die eingefügte Beschreibung ins Formular. */
+  function youtubeUebernehmen() {
+    setBild(ytInfo?.vorschaubild);
+    setVideoUrl(ytInfo?.videoUrl);
+    if (ytBeschreibung.trim()) {
+      formularVorbefuellen(ytBeschreibung);
+      if (ytInfo?.titel) setName(ytInfo.titel);
+    } else {
+      setName(ytInfo?.titel ?? '');
+      setBeschreibung('');
+      setZutatenText('');
+      setZubereitungText('');
+      setHinweisUngenau(true);
+    }
     setSchritt('formular');
   }
 
@@ -106,7 +159,8 @@ export function AddRecipe() {
         name: name.trim(),
         description: beschreibung.trim(),
         ...(bild ? { image: bild } : {}),
-        placeholder: { emoji: '📷', tone: zufaelligerTon() },
+        ...(videoUrl ? { videoUrl } : {}),
+        placeholder: { emoji: videoUrl ? '📺' : '📷', tone: zufaelligerTon() },
         baseServings: portionen,
         timeMinutes: minuten,
         difficulty: 'einfach',
@@ -174,9 +228,92 @@ export function AddRecipe() {
               </div>
             )}
 
+            <button type="button" className="btn btn-ghost btn-block" onClick={youtubeStarten}>
+              📺 YouTube-Video-Link einfügen
+            </button>
             <button type="button" className="btn btn-ghost btn-block" onClick={vonHandStarten}>
               ✏️ Stattdessen von Hand eingeben
             </button>
+          </div>
+        )}
+
+        {schritt === 'youtube' && (
+          <div className="stack">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              style={{ alignSelf: 'flex-start' }}
+              onClick={() => setSchritt('start')}
+            >
+              ← Zurück
+            </button>
+
+            <div className="card">
+              <h3>YouTube-Link</h3>
+              <p className="hint" style={{ marginTop: 4 }}>
+                Titel und Vorschaubild werden automatisch geholt.
+              </p>
+              <div className="row" style={{ marginTop: 10, gap: 8 }}>
+                <input
+                  className="search"
+                  style={{ flex: 1 }}
+                  value={ytEingabe}
+                  onChange={(e) => setYtEingabe(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void videoSuchen()}
+                  placeholder="https://youtube.com/watch?v=…"
+                  inputMode="url"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!ytEingabe.trim() || ytLaedt}
+                  onClick={() => void videoSuchen()}
+                >
+                  {ytLaedt ? '…' : 'Suchen'}
+                </button>
+              </div>
+              {ytFehler && (
+                <p style={{ marginTop: 10, color: 'var(--accent)', fontSize: 14 }}>{ytFehler}</p>
+              )}
+            </div>
+
+            {ytInfo && (
+              <div className="card row" style={{ gap: 12 }}>
+                <img
+                  src={ytInfo.vorschaubild}
+                  alt=""
+                  style={{ width: 96, height: 54, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' }}
+                />
+                <div>
+                  <div style={{ fontWeight: 650 }}>{ytInfo.titel}</div>
+                  {ytInfo.kanal && <div className="hint">{ytInfo.kanal}</div>}
+                </div>
+              </div>
+            )}
+
+            {(ytInfo || ytFehler) && (
+              <div className="card">
+                <h3>Beschreibung einfügen</h3>
+                <p className="hint" style={{ marginTop: 4 }}>
+                  Auf YouTube unter dem Video auf „Mehr“ tippen, den Text (meist mit Zutaten
+                  und Zubereitung) kopieren und hier einfügen.
+                </p>
+                <textarea
+                  className="textarea"
+                  style={{ marginTop: 10, minHeight: 160, fontFamily: 'inherit' }}
+                  value={ytBeschreibung}
+                  onChange={(e) => setYtBeschreibung(e.target.value)}
+                  placeholder={'Zutaten\n500 g Kartoffeln\n…\n\nZubereitung\n1. …'}
+                />
+              </div>
+            )}
+
+            {(ytInfo || ytFehler) && (
+              <button type="button" className="btn btn-primary btn-block" onClick={youtubeUebernehmen}>
+                Weiter
+              </button>
+            )}
           </div>
         )}
 

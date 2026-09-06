@@ -105,8 +105,20 @@ export function RecipeDetail() {
           {recipe.kidFriendly && <span className="tag">👨‍👩‍👧‍👦 Kinderfreundlich</span>}
           {recipe.onePot && <span className="tag tag-accent">🥘 One Pot</span>}
           <span className="tag">📶 {recipe.difficulty}</span>
-          {eigenesRezept && <span className="tag">📷 Eigenes Rezept</span>}
+          {eigenesRezept && <span className="tag">{recipe.videoUrl ? '📺' : '📷'} Eigenes Rezept</span>}
         </div>
+
+        {recipe.videoUrl && (
+          <a
+            href={recipe.videoUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="btn btn-block"
+            style={{ marginTop: 12 }}
+          >
+            ▶️ Video auf YouTube ansehen
+          </a>
+        )}
 
         <div className="row" style={{ marginTop: 12, gap: 8 }}>
           {rating.count > 0 ? (
