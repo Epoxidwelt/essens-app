@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { RECIPES } from '../data/recipes';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FILTERS, filterRecipes } from '../lib/filters';
 import { useApp } from '../store/AppContext';
 import { RecipeCard } from '../components/RecipeCard';
 
 export function Recipes() {
-  const { state } = useApp();
+  const { state, recipes } = useApp();
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(params.get('q') ?? '');
   const [active, setActive] = useState<string[]>(
@@ -19,8 +18,8 @@ export function Recipes() {
   );
 
   const results = useMemo(
-    () => filterRecipes(RECIPES, { query, activeFilters: active, favoriteIds }),
-    [query, active, favoriteIds],
+    () => filterRecipes(recipes, { query, activeFilters: active, favoriteIds }),
+    [query, active, favoriteIds, recipes],
   );
 
   function toggleFilter(id: string) {
@@ -37,7 +36,10 @@ export function Recipes() {
       <div className="page-header">
         <h1>Rezepte</h1>
         <span className="spacer" />
-        <span className="sub">{results.length} von {RECIPES.length}</span>
+        <span className="sub">{results.length} von {recipes.length}</span>
+        <Link to="/rezept-hinzufuegen" className="icon-btn" aria-label="Rezept hinzufügen" style={{ marginLeft: 10 }}>
+          +
+        </Link>
       </div>
 
       <div className="page" style={{ paddingTop: 4 }}>

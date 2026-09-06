@@ -17,6 +17,7 @@ import { createBackup, describeState, parseBackup } from '../src/lib/backup';
 import { shoppingListToText } from '../src/lib/shopping';
 import { sqlBool, sqlJson, sqlNumber, sqlText, sqlTextArray } from '../src/lib/sql';
 import { mergeStates, sameContent } from '../src/lib/sync';
+import { alleRezepte, findeRezept } from '../src/lib/recipes';
 import type { ShoppingList, WeeklyPlan } from '../src/types';
 
 const emptyList = (): ShoppingList => createInitialState().shoppingList;
@@ -440,5 +441,83 @@ describe('Abgleich erkennt, wann nichts Neues dazukommt', () => {
     expect(sameContent(handy, tablet)).toBe(true);
     // Ein weiterer Durchlauf ändert nichts mehr – kein endloses Hin und Her.
     expect(sameContent(handy, mergeStates(handy, tablet))).toBe(true);
+  });
+});
+
+describe('Eigene Rezepte im Abgleich', () => {
+  const eigenesRezept = (id: string, name: string, createdAt: string): import('../src/types').Recipe => ({
+    id,
+    name,
+    description: '',
+    placeholder: { emoji: '🍽️', tone: 'green' },
+    baseServings: 4,
+    timeMinutes: 20,
+    difficulty: 'einfach',
+    ingredients: [],
+    steps: [],
+    nutrition: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+    categories: [],
+    noAddedSugar: true,
+    kidFriendly: true,
+    onePot: false,
+    createdAt,
+    updatedAt: createdAt,
+  });
+
+  it('behält eigene Rezepte von beiden Geräten', () => {
+    const handy = createInitialState();
+    handy.customRecipes.push(eigenesRezept('a', 'Omas Auflauf', '2026-09-01'));
+    const tablet = createInitialState();
+    tablet.customRecipes.push(eigenesRezept('b', 'Papas Suppe', '2026-09-02'));
+
+    const merged = mergeStates(handy, tablet);
+    expect(merged.customRecipes.map((r) => r.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('behält bei einer bearbeiteten Version die neuere', () => {
+    const alt = createInitialState();
+    alt.customRecipes.push(eigenesRezept('a', 'Auflauf', '2026-09-01'));
+    const neu = createInitialState();
+    neu.customRecipes.push({ ...eigenesRezept('a', 'Auflauf (überarbeitet)', '2026-09-01'), updatedAt: '2026-09-05' });
+
+    expect(mergeStates(alt, neu).customRecipes[0].name).toBe('Auflauf (überarbeitet)');
+    expect(mergeStates(neu, alt).customRecipes[0].name).toBe('Auflauf (überarbeitet)');
+  });
+
+  it('führt dabei neu angelegte Zutaten zusammen', () => {
+    const a = createInitialState();
+    a.customIngredients.push({ id: 'eigene-tofu', name: 'Tofu', category: 'sonstiges' });
+    const b = createInitialState();
+    b.customIngredients.push({ id: 'eigene-seitan', name: 'Seitan', category: 'sonstiges' });
+    expect(mergeStates(a, b).customIngredients.map((i) => i.id).sort()).toEqual([
+      'eigene-seitan',
+      'eigene-tofu',
+    ]);
+  });
+});
+
+describe('Kombinierte Rezeptliste (eingebaut + eigene)', () => {
+  it('zeigt eigene Rezepte zusätzlich zu den eingebauten', () => {
+    const eigenes = {
+      id: 'eigenes-test',
+      name: 'Test',
+      description: '',
+      placeholder: { emoji: '🍽️', tone: 'green' as const },
+      baseServings: 4,
+      timeMinutes: 10,
+      difficulty: 'einfach' as const,
+      ingredients: [],
+      steps: [],
+      nutrition: { kcal: 0, protein: 0, carbs: 0, fat: 0 },
+      categories: [],
+      noAddedSugar: true,
+      kidFriendly: true,
+      onePot: false,
+    };
+    const alle = alleRezepte([eigenes]);
+    expect(alle).toHaveLength(RECIPES.length + 1);
+    expect(findeRezept('eigenes-test', [eigenes])?.name).toBe('Test');
+    expect(findeRezept('one-pot-bolognese-nudeln', [eigenes])?.name).toBe('One-Pot Nudeln Bolognese');
+    expect(findeRezept('gibt-es-nicht', [eigenes])).toBeUndefined();
   });
 });

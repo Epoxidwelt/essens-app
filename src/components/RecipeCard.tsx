@@ -34,7 +34,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         <p className="desc">{recipe.description}</p>
         <div className="recipe-meta">
           <span>⏱️ {recipe.timeMinutes} Min</span>
-          <span>🔥 {recipe.nutrition.kcal} kcal</span>
+          {recipe.nutrition.kcal > 0 && <span>🔥 {recipe.nutrition.kcal} kcal</span>}
           {recipe.onePot && <span>🥘 One Pot</span>}
           {rating.count > 0 && (
             <span className="row" style={{ gap: 4 }}>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { Recipe } from '../types';
-import { RECIPES } from '../data/recipes';
+import { useApp } from '../store/AppContext';
 import { Sheet } from './Sheet';
 
 /** Auswahl-Sheet, um dem Wochenplan ein Rezept zuzuordnen. */
@@ -13,14 +13,15 @@ export function RecipePicker({
   onPick: (recipe: Recipe) => void;
   onClose: () => void;
 }) {
+  const { recipes } = useApp();
   const [query, setQuery] = useState('');
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return RECIPES;
-    return RECIPES.filter(
+    if (!q) return recipes;
+    return recipes.filter(
       (r) => r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q),
     );
-  }, [query]);
+  }, [query, recipes]);
 
   return (
     <Sheet title={title} onClose={onClose}>
@@ -41,12 +42,16 @@ export function RecipePicker({
           onClick={() => onPick(recipe)}
         >
           <span className={`picker-thumb tone-${recipe.placeholder.tone}`} aria-hidden>
-            {recipe.placeholder.emoji}
+            {recipe.image ? (
+              <img src={recipe.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+            ) : (
+              recipe.placeholder.emoji
+            )}
           </span>
           <span>
             <span style={{ fontWeight: 650, display: 'block' }}>{recipe.name}</span>
             <span className="hint">
-              ⏱️ {recipe.timeMinutes} Min · {recipe.nutrition.kcal} kcal
+              ⏱️ {recipe.timeMinutes} Min{recipe.nutrition.kcal > 0 ? ` · ${recipe.nutrition.kcal} kcal` : ''}
             </span>
           </span>
         </button>

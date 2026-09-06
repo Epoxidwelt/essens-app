@@ -14,6 +14,19 @@ const BASE = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base: BASE,
+  build: {
+    rollupOptions: {
+      output: {
+        // Texterkennung (Foto/PDF -> Rezept) braucht die meisten nur selten.
+        // Eigene, klar benannte Pakete, damit sie unten gezielt von der
+        // Vorab-Ladeliste ausgeschlossen werden koennen.
+        manualChunks(id) {
+          if (id.includes('tesseract.js')) return 'texterkennung-ocr';
+          if (id.includes('pdfjs-dist')) return 'texterkennung-pdf';
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     // Macht die App auf dem Handy installierbar und offline nutzbar.
@@ -42,6 +55,26 @@ export default defineConfig({
         // Rezepte, Bilder und Code werden vorgeladen – die App laeuft damit
         // auch in der Kueche ohne Empfang.
         globPatterns: ['**/*.{js,css,html,png,ico,svg,woff2}'],
+        // Die Texterkennung (Foto/PDF -> Rezept) braucht nicht jeder sofort –
+        // ihre Pakete (u. a. der 1,3-MB-PDF-Baustein) werden erst geladen,
+        // wenn die Funktion tatsaechlich genutzt wird, statt beim ersten
+        // Start der App alle Handys unnoetig zu belasten.
+        globIgnores: ['**/texterkennung-*.js', '**/pdf.worker*.mjs'],
+        runtimeCaching: [
+          {
+            urlPattern: /texterkennung-|pdf\.worker/,
+            handler: 'CacheFirst',
+            options: { cacheName: 'texterkennung', expiration: { maxEntries: 8 } },
+          },
+          // Tesseract laedt Sprachdaten von einem CDN nach – einmal genutzt,
+          // funktioniert die Texterkennung danach auch ohne Empfang.
+          {
+            urlPattern: ({ url }: { url: URL }) =>
+              /jsdelivr|unpkg/.test(url.hostname) && /tesseract|traineddata/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'texterkennung-sprachdaten', expiration: { maxEntries: 4 } },
+          },
+        ],
         navigateFallback: `${BASE}index.html`,
       },
       devOptions: { enabled: false },

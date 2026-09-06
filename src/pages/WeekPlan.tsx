@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RECIPE_BY_ID } from '../data/recipes';
 import { plural } from '../lib/text';
 import { useApp } from '../store/AppContext';
 import { RecipePicker } from '../components/RecipePicker';
@@ -24,7 +23,7 @@ const SLOTS: Array<{ id: MealSlot; label: string }> = [
 ];
 
 export function WeekPlan() {
-  const { state, setPlanEntry, removePlanEntry, clearPlan, createWeekShopping } = useApp();
+  const { state, getRecipe, setPlanEntry, removePlanEntry, clearPlan, createWeekShopping } = useApp();
   const { showToast, toast } = useToast();
   const [target, setTarget] = useState<{ day: Weekday; slot: MealSlot } | null>(null);
 
@@ -61,7 +60,7 @@ export function WeekPlan() {
             <h3>{day.label}</h3>
             {SLOTS.map((slot) => {
               const entry = entryFor(day.id, slot.id);
-              const recipe = entry ? RECIPE_BY_ID[entry.recipeId] : undefined;
+              const recipe = entry ? getRecipe(entry.recipeId) : undefined;
               return (
                 <div className="slot" key={slot.id}>
                   <span className="slot-name">{slot.label}</span>

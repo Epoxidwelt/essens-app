@@ -128,6 +128,9 @@ export interface Recipe {
   kidFriendly: boolean;
   onePot: boolean;
   tips?: string;
+  /** Nur bei selbst hinzugefügten Rezepten gesetzt – dient dem Geräte-Abgleich. */
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /* ------------------------------------------------------ Nutzer & Bewertung */
@@ -221,4 +224,8 @@ export interface AppState {
   ratings: Rating[];
   shoppingList: ShoppingList;
   weeklyPlan: WeeklyPlan;
+  /** Selbst hinzugefügte Rezepte (aus Foto, PDF oder von Hand). */
+  customRecipes: Recipe[];
+  /** Zutaten, die dabei neu angelegt wurden und in keiner Stammliste stehen. */
+  customIngredients: Ingredient[];
 }

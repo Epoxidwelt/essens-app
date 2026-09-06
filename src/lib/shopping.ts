@@ -1,4 +1,5 @@
 import type {
+  Ingredient,
   Recipe,
   ShoppingList,
   ShoppingListItem,
@@ -128,11 +129,19 @@ export interface ShoppingGroup {
   items: ShoppingListItem[];
 }
 
+/** Zutat nachschlagen – zuerst Stammdaten, dann selbst angelegte (aus Foto/PDF-Rezepten). */
+function nachschlagen(id: string, customIngredients: Ingredient[]): Ingredient | undefined {
+  return INGREDIENT_BY_ID[id] ?? customIngredients.find((i) => i.id === id);
+}
+
 /** Gruppiert die Liste nach Supermarkt-Abteilung, offene Positionen zuerst. */
-export function groupByCategory(items: ShoppingListItem[]): ShoppingGroup[] {
+export function groupByCategory(
+  items: ShoppingListItem[],
+  customIngredients: Ingredient[] = [],
+): ShoppingGroup[] {
   const groups = new Map<ShopCategory, ShoppingListItem[]>();
   for (const item of items) {
-    const category = INGREDIENT_BY_ID[item.ingredientId]?.category ?? 'sonstiges';
+    const category = nachschlagen(item.ingredientId, customIngredients)?.category ?? 'sonstiges';
     const bucket = groups.get(category) ?? [];
     bucket.push(item);
     groups.set(category, bucket);
@@ -141,8 +150,8 @@ export function groupByCategory(items: ShoppingListItem[]): ShoppingGroup[] {
     category,
     items: (groups.get(category) ?? []).sort((a, b) => {
       if (a.checked !== b.checked) return a.checked ? 1 : -1;
-      const an = INGREDIENT_BY_ID[a.ingredientId]?.name ?? a.ingredientId;
-      const bn = INGREDIENT_BY_ID[b.ingredientId]?.name ?? b.ingredientId;
+      const an = nachschlagen(a.ingredientId, customIngredients)?.name ?? a.ingredientId;
+      const bn = nachschlagen(b.ingredientId, customIngredients)?.name ?? b.ingredientId;
       return an.localeCompare(bn, 'de');
     }),
   }));
@@ -157,16 +166,16 @@ export function itemAmount(item: ShoppingListItem): { amount: number; unit: Unit
  * Einkaufsliste als Text – zum Teilen per Nachricht, damit auch jemand anderes
  * einkaufen gehen kann. Bereits abgehakte Positionen bleiben aussen vor.
  */
-export function shoppingListToText(items: ShoppingListItem[]): string {
+export function shoppingListToText(items: ShoppingListItem[], customIngredients: Ingredient[] = []): string {
   const offen = items.filter((item) => !item.checked);
   if (offen.length === 0) return 'Einkaufsliste (Essens App)\n\nAlles erledigt.';
 
   const lines: string[] = ['Einkaufsliste (Essens App)', ''];
-  for (const group of groupByCategory(offen)) {
+  for (const group of groupByCategory(offen, customIngredients)) {
     lines.push(SHOP_CATEGORY_LABEL[group.category]);
     for (const item of group.items) {
       const q = itemAmount(item);
-      const name = INGREDIENT_BY_ID[item.ingredientId]?.name ?? item.ingredientId;
+      const name = nachschlagen(item.ingredientId, customIngredients)?.name ?? item.ingredientId;
       lines.push(`- ${formatQuantity(q.amount, q.unit)} ${name}`);
     }
     lines.push('');

@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { RECIPE_BY_ID } from '../data/recipes';
-import { INGREDIENT_BY_ID } from '../data/ingredients';
 import { formatQuantity, scaleAmount } from '../lib/quantity';
 import { useApp } from '../store/AppContext';
 import { describeHousehold, plural } from '../lib/text';
@@ -31,6 +29,10 @@ export function RecipeDetail() {
   const navigate = useNavigate();
   const {
     state,
+    getRecipe,
+    getIngredient,
+    isCustomRecipe,
+    removeCustomRecipe,
     isFavorite,
     toggleFavorite,
     addRecipeToShoppingList,
@@ -41,7 +43,9 @@ export function RecipeDetail() {
   } = useApp();
   const { showToast, toast } = useToast();
 
-  const recipe = id ? RECIPE_BY_ID[id] : undefined;
+  const recipe = id ? getRecipe(id) : undefined;
+  const eigenesRezept = id ? isCustomRecipe(id) : false;
+  const [zeigeLoeschen, setZeigeLoeschen] = useState(false);
   // Startet mit der in den Einstellungen hinterlegten Familiengroesse.
   const [servings, setServings] = useState(state.user.defaultServings);
   const [doneSteps, setDoneSteps] = useState<number[]>([]);
@@ -65,6 +69,7 @@ export function RecipeDetail() {
     );
   }
 
+  const naehrwerteBekannt = recipe.nutrition.kcal > 0;
   const fav = isFavorite(recipe.id);
   const rating = averageRating(recipe.id);
   const reviews = ratingsFor(recipe.id);
@@ -96,10 +101,11 @@ export function RecipeDetail() {
         <p style={{ color: 'var(--ink-soft)', marginTop: 8 }}>{recipe.description}</p>
 
         <div className="tags" style={{ marginTop: 12 }}>
-          <span className="tag tag-green">✓ Ohne zugesetzten Zucker</span>
+          {recipe.noAddedSugar && <span className="tag tag-green">✓ Ohne zugesetzten Zucker</span>}
           {recipe.kidFriendly && <span className="tag">👨‍👩‍👧‍👦 Kinderfreundlich</span>}
           {recipe.onePot && <span className="tag tag-accent">🥘 One Pot</span>}
           <span className="tag">📶 {recipe.difficulty}</span>
+          {eigenesRezept && <span className="tag">📷 Eigenes Rezept</span>}
         </div>
 
         <div className="row" style={{ marginTop: 12, gap: 8 }}>
@@ -122,22 +128,32 @@ export function RecipeDetail() {
             <div className="v">{recipe.timeMinutes}′</div>
             <div className="k">Zeit</div>
           </div>
-          <div className="fact">
-            <div className="v">{Math.round(recipe.nutrition.kcal)}</div>
-            <div className="k">kcal / Portion</div>
-          </div>
-          <div className="fact">
-            <div className="v">{recipe.nutrition.protein} g</div>
-            <div className="k">Eiweiß</div>
-          </div>
-          <div className="fact">
-            <div className="v">{recipe.nutrition.carbs} g</div>
-            <div className="k">Kohlenhydrate</div>
-          </div>
+          {naehrwerteBekannt ? (
+            <>
+              <div className="fact">
+                <div className="v">{Math.round(recipe.nutrition.kcal)}</div>
+                <div className="k">kcal / Portion</div>
+              </div>
+              <div className="fact">
+                <div className="v">{recipe.nutrition.protein} g</div>
+                <div className="k">Eiweiß</div>
+              </div>
+              <div className="fact">
+                <div className="v">{recipe.nutrition.carbs} g</div>
+                <div className="k">Kohlenhydrate</div>
+              </div>
+            </>
+          ) : (
+            <div className="fact" style={{ gridColumn: 'span 3' }}>
+              <div className="k">Nährwerte unbekannt</div>
+            </div>
+          )}
         </div>
-        <p className="hint" style={{ marginTop: 8 }}>
-          Fett: {recipe.nutrition.fat} g pro Portion
-        </p>
+        {naehrwerteBekannt && (
+          <p className="hint" style={{ marginTop: 8 }}>
+            Fett: {recipe.nutrition.fat} g pro Portion
+          </p>
+        )}
 
         <div className="action-bar">
           <button
@@ -200,7 +216,7 @@ export function RecipeDetail() {
 
           <ul className="ing-list">
             {recipe.ingredients.map((ri) => {
-              const ingredient = INGREDIENT_BY_ID[ri.ingredientId];
+              const ingredient = getIngredient(ri.ingredientId);
               const amount = scaleAmount(ri.amount, ri.unit, recipe.baseServings, servings);
               return (
                 <li key={ri.ingredientId + ri.unit}>
@@ -278,6 +294,36 @@ export function RecipeDetail() {
                 ))}
             </div>
           </>
+        )}
+
+        {eigenesRezept && (
+          <div className="card" style={{ marginTop: 14 }}>
+            {zeigeLoeschen ? (
+              <>
+                <p style={{ fontSize: 14 }}>Dieses eigene Rezept wirklich löschen?</p>
+                <div className="row" style={{ marginTop: 10, gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn btn-accent"
+                    onClick={() => {
+                      removeCustomRecipe(recipe.id);
+                      showToast('Rezept gelöscht');
+                      navigate('/rezepte');
+                    }}
+                  >
+                    Ja, löschen
+                  </button>
+                  <button type="button" className="btn" onClick={() => setZeigeLoeschen(false)}>
+                    Abbrechen
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setZeigeLoeschen(true)}>
+                🗑️ Eigenes Rezept löschen
+              </button>
+            )}
+          </div>
         )}
 
         <div style={{ height: 24 }} />

@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { RECIPES, RECIPE_BY_ID } from '../data/recipes';
 import { matchesQuery } from '../lib/filters';
 import { plural } from '../lib/text';
 import { useApp } from '../store/AppContext';
@@ -9,13 +8,13 @@ import { RecipeCard } from '../components/RecipeCard';
 const WEEKDAYS = ['so', 'mo', 'di', 'mi', 'do', 'fr', 'sa'] as const;
 
 export function Home() {
-  const { state, sync } = useApp();
+  const { state, sync, recipes, getRecipe } = useApp();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
 
   const suggestions = useMemo(
-    () => (query.trim() ? RECIPES.filter((r) => matchesQuery(r, query)).slice(0, 6) : []),
-    [query],
+    () => (query.trim() ? recipes.filter((r) => matchesQuery(r, query)).slice(0, 6) : []),
+    [query, recipes],
   );
 
   const todayKey = WEEKDAYS[new Date().getDay()];
@@ -24,8 +23,8 @@ export function Home() {
   const openShoppingItems = state.shoppingList.items.filter((i) => !i.checked).length;
   const plannedMeals = state.weeklyPlan.items.length;
 
-  const quickRecipes = useMemo(() => RECIPES.filter((r) => r.timeMinutes <= 20).slice(0, 4), []);
-  const onePotRecipes = useMemo(() => RECIPES.filter((r) => r.onePot).slice(0, 4), []);
+  const quickRecipes = useMemo(() => recipes.filter((r) => r.timeMinutes <= 20).slice(0, 4), [recipes]);
+  const onePotRecipes = useMemo(() => recipes.filter((r) => r.onePot).slice(0, 4), [recipes]);
 
   return (
     <div className="page">
@@ -94,13 +93,31 @@ export function Home() {
         </Link>
       )}
 
-      <div className="tiles" style={{ marginTop: 20 }}>
+      <Link
+        to="/rezept-hinzufuegen"
+        className="row"
+        style={{
+          marginTop: 18,
+          gap: 8,
+          padding: '10px 14px',
+          background: 'var(--surface)',
+          border: '1px dashed var(--line)',
+          borderRadius: 999,
+          justifyContent: 'center',
+          fontWeight: 600,
+          fontSize: 14,
+        }}
+      >
+        📷 Eigenes Rezept per Foto oder PDF hinzufügen
+      </Link>
+
+      <div className="tiles" style={{ marginTop: 14 }}>
         <Link to="/rezepte" className="tile tile-recipes">
           <span className="tile-emoji" aria-hidden>🍽️</span>
           <span>
             <span className="tile-name">Rezepte</span>
             <span className="tile-meta" style={{ display: 'block' }}>
-              {plural(RECIPES.length, 'Gericht', 'Gerichte')}
+              {plural(recipes.length, 'Gericht', 'Gerichte')}
             </span>
           </span>
         </Link>
@@ -142,7 +159,7 @@ export function Home() {
           </div>
           <div className="card">
             {todayEntries.map((entry) => {
-              const recipe = RECIPE_BY_ID[entry.recipeId];
+              const recipe = getRecipe(entry.recipeId);
               if (!recipe) return null;
               return (
                 <Link key={entry.id} to={`/rezept/${recipe.id}`} className="slot" style={{ marginBottom: 8 }}>

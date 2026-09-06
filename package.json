@@ -20,9 +20,11 @@
     "build:pages": "BASE_PATH=${BASE_PATH:-/essens-app/} vite build && cp dist/index.html dist/404.html"
   },
   "dependencies": {
+    "pdfjs-dist": "^6.3.289",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2"
+    "react-router-dom": "^6.26.2",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

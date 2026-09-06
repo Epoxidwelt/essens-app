@@ -1,4 +1,4 @@
-import type { AppState, Favorite, Rating, ShoppingListItem, WeeklyPlanItem } from '../types';
+import type { AppState, Favorite, Ingredient, Rating, Recipe, ShoppingListItem, WeeklyPlanItem } from '../types';
 import { unitFamily } from './quantity';
 
 /**
@@ -85,6 +85,34 @@ function mergePlanItems(mine: WeeklyPlanItem[], theirs: WeeklyPlanItem[]): Weekl
  * Fuehrt den eigenen Stand (`mine`) mit dem Stand des Servers (`theirs`) zusammen.
  * Das Ergebnis enthaelt alles, was auf einer der beiden Seiten vorhanden war.
  */
+/**
+ * Eigene Rezepte: beide Seiten behalten, nie verlieren. Existiert dieselbe
+ * id auf beiden Seiten (eine spaeter bearbeitete Version), gewinnt die
+ * zuletzt geaenderte.
+ */
+function mergeCustomRecipes(mine: Recipe[], theirs: Recipe[]): Recipe[] {
+  const byId = new Map<string, Recipe>();
+  for (const recipe of theirs) byId.set(recipe.id, recipe);
+  for (const recipe of mine) {
+    const other = byId.get(recipe.id);
+    if (!other) {
+      byId.set(recipe.id, recipe);
+      continue;
+    }
+    const meinsNeuer = (recipe.updatedAt ?? recipe.createdAt ?? '') >= (other.updatedAt ?? other.createdAt ?? '');
+    byId.set(recipe.id, meinsNeuer ? recipe : other);
+  }
+  return [...byId.values()].sort((a, b) => (a.createdAt ?? '').localeCompare(b.createdAt ?? ''));
+}
+
+/** Beim Anlegen eigener Zutaten entstandene Eintraege – nach id zusammenfuehren. */
+function mergeCustomIngredients(mine: Ingredient[], theirs: Ingredient[]): Ingredient[] {
+  const byId = new Map<string, Ingredient>();
+  for (const ing of theirs) byId.set(ing.id, ing);
+  for (const ing of mine) byId.set(ing.id, ing);
+  return [...byId.values()];
+}
+
 export function mergeStates(mine: AppState, theirs: AppState): AppState {
   return {
     // Einstellungen: der eigene Stand gilt, das Geraet gehoert der Person davor.
@@ -101,6 +129,8 @@ export function mergeStates(mine: AppState, theirs: AppState): AppState {
       mine.weeklyPlan.weekStart === theirs.weeklyPlan.weekStart
         ? { ...mine.weeklyPlan, items: mergePlanItems(mine.weeklyPlan.items, theirs.weeklyPlan.items) }
         : mine.weeklyPlan,
+    customRecipes: mergeCustomRecipes(mine.customRecipes, theirs.customRecipes),
+    customIngredients: mergeCustomIngredients(mine.customIngredients, theirs.customIngredients),
   };
 }
 
@@ -121,6 +151,8 @@ export function sameContent(a: AppState, b: AppState): boolean {
       plan: [...s.weeklyPlan.items].sort((x, y) => x.id.localeCompare(y.id)),
       week: s.weeklyPlan.weekStart,
       user: s.user,
+      customRecipes: [...s.customRecipes].sort((x, y) => x.id.localeCompare(y.id)),
+      customIngredients: [...s.customIngredients].sort((x, y) => x.id.localeCompare(y.id)),
     });
   return relevant(a) === relevant(b);
 }

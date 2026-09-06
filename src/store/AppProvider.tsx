@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { AppState, MealSlot, Recipe, Unit, Weekday } from '../types';
+import type { AppState, Ingredient, MealSlot, Recipe, Unit, Weekday } from '../types';
 import { AppContext, type AppContextValue } from './AppContext';
-import { RECIPE_BY_ID } from '../data/recipes';
 import { addItems, addRecipe, pendingItemsFromPlan, removeRecipe } from '../lib/shopping';
+import { alleRezepte, findeRezept, findeZutat } from '../lib/recipes';
 import { createInitialState, hydrate, repository } from '../lib/storage';
 import { mergeStates, sameContent } from '../lib/sync';
 import { abmelden, anmelden, fetchState, fetchVersion, pushState } from '../lib/syncClient';
@@ -165,6 +165,59 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [ready, abgleichen]);
 
+  const recipes = useMemo(() => alleRezepte(state.customRecipes), [state.customRecipes]);
+  const getRecipe = useCallback(
+    (id: string) => findeRezept(id, state.customRecipes),
+    [state.customRecipes],
+  );
+  const getIngredient = useCallback(
+    (id: string) => findeZutat(id, state.customIngredients),
+    [state.customIngredients],
+  );
+  const isCustomRecipe = useCallback(
+    (recipeId: string) => state.customRecipes.some((r) => r.id === recipeId),
+    [state.customRecipes],
+  );
+
+  const addCustomRecipe = useCallback(
+    (entwurf: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>, neueZutaten: Ingredient[]) => {
+      const jetzt = new Date().toISOString();
+      const slug =
+        entwurf.name
+          .toLowerCase()
+          .normalize('NFKD')
+          .replace(/[̀-ͯ]/g, '')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .slice(0, 40) || 'rezept';
+      const recipe: Recipe = {
+        ...entwurf,
+        id: `eigenes-${slug}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: jetzt,
+        updatedAt: jetzt,
+      };
+      setState((prev) => {
+        const vorhandeneIds = new Set(prev.customIngredients.map((i) => i.id));
+        const wirklichNeu = neueZutaten.filter((i) => !vorhandeneIds.has(i.id));
+        return {
+          ...prev,
+          customRecipes: [recipe, ...prev.customRecipes],
+          customIngredients: [...prev.customIngredients, ...wirklichNeu],
+        };
+      });
+      return recipe;
+    },
+    [],
+  );
+
+  const removeCustomRecipe = useCallback((recipeId: string) => {
+    setState((prev) => ({
+      ...prev,
+      customRecipes: prev.customRecipes.filter((r) => r.id !== recipeId),
+      favorites: prev.favorites.filter((f) => f.recipeId !== recipeId),
+    }));
+  }, []);
+
   const isFavorite = useCallback(
     (recipeId: string) => state.favorites.some((f) => f.recipeId === recipeId),
     [state.favorites],
@@ -314,7 +367,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const count = state.weeklyPlan.items.length;
     if (count === 0) return 0;
     setState((prev) => {
-      const pending = pendingItemsFromPlan(prev.weeklyPlan, RECIPE_BY_ID);
+      const nachschlagen = Object.fromEntries(alleRezepte(prev.customRecipes).map((r) => [r.id, r]));
+      const pending = pendingItemsFromPlan(prev.weeklyPlan, nachschlagen);
       if (pending.length === 0) return prev;
       return { ...prev, shoppingList: addItems(prev.shoppingList, pending) };
     });
@@ -364,6 +418,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       ready,
       sync,
+      recipes,
+      getRecipe,
+      getIngredient,
+      addCustomRecipe,
+      removeCustomRecipe,
+      isCustomRecipe,
       isFavorite,
       toggleFavorite,
       ratingsFor,
@@ -390,6 +450,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state,
       ready,
       sync,
+      recipes,
+      getRecipe,
+      getIngredient,
+      addCustomRecipe,
+      removeCustomRecipe,
+      isCustomRecipe,
       isFavorite,
       toggleFavorite,
       ratingsFor,

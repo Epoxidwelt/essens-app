@@ -7,6 +7,7 @@ import { Favorites } from './pages/Favorites';
 import { ShoppingList } from './pages/ShoppingList';
 import { WeekPlan } from './pages/WeekPlan';
 import { Settings } from './pages/Settings';
+import { AddRecipe } from './pages/AddRecipe';
 import { useApp } from './store/AppContext';
 
 export function App() {
@@ -19,6 +20,7 @@ export function App() {
           <Route path="/" element={<Home />} />
           <Route path="/rezepte" element={<Recipes />} />
           <Route path="/rezept/:id" element={<RecipeDetail />} />
+          <Route path="/rezept-hinzufuegen" element={<AddRecipe />} />
           <Route path="/lecker" element={<Favorites />} />
           <Route path="/einkaufsliste" element={<ShoppingList />} />
           <Route path="/wochenplan" element={<WeekPlan />} />

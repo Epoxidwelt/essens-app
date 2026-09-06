@@ -231,8 +231,10 @@ export function Settings() {
         <div className="card">
           <h2>Über die App</h2>
           <p className="hint" style={{ marginTop: 6 }}>
-            {plural(RECIPES.length, 'Rezept', 'Rezepte')} ohne zugesetzten Zucker und ohne
-            Fisch · davon {RECIPES.filter((r) => r.onePot).length} One-Pot-Gerichte
+            {plural(RECIPES.length, 'mitgeliefertes Rezept', 'mitgelieferte Rezepte')} ohne
+            zugesetzten Zucker und ohne Fisch · davon {RECIPES.filter((r) => r.onePot).length} One-Pot-Gerichte
+            {state.customRecipes.length > 0 &&
+              ` · ${plural(state.customRecipes.length, 'eigenes Rezept', 'eigene Rezepte')} hinzugefügt`}
           </p>
 
           {confirmReset ? (

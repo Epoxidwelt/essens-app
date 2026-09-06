@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { AppState, MealSlot, Rating, Recipe, Unit, Weekday } from '../types';
+import type { AppState, Ingredient, MealSlot, Rating, Recipe, Unit, Weekday } from '../types';
 
 /** Zustand des Abgleichs mit dem Familien-Server. */
 export interface SyncStatus {
@@ -21,6 +21,17 @@ export interface AppContextValue {
   state: AppState;
   ready: boolean;
   sync: SyncStatus;
+  /* Rezepte: eingebaut + selbst hinzugefügt, zusammengeführt */
+  recipes: Recipe[];
+  getRecipe: (id: string) => Recipe | undefined;
+  getIngredient: (id: string) => Ingredient | undefined;
+  /** Legt ein neues eigenes Rezept an (aus Foto, PDF oder von Hand) und liefert es zurück. */
+  addCustomRecipe: (
+    entwurf: Omit<Recipe, 'id' | 'createdAt' | 'updatedAt'>,
+    neueZutaten: Ingredient[],
+  ) => Recipe;
+  removeCustomRecipe: (recipeId: string) => void;
+  isCustomRecipe: (recipeId: string) => boolean;
   /* Favoriten ("Lecker") */
   isFavorite: (recipeId: string) => boolean;
   toggleFavorite: (recipeId: string) => void;

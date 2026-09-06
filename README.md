@@ -60,6 +60,12 @@ Weitere Befehle:
 - **Startseite** mit „Was möchtest du heute essen?“, Suchfeld mit Live-Vorschlägen
   und den vier Kacheln Rezepte / Lecker / Einkaufsliste / Wochenplan
 - **30 Rezepte**, davon 17 One-Pot-Gerichte — alle ohne zugesetzten Zucker und ohne Fisch
+- **📷 Eigene Rezepte hinzufügen**: Foto oder PDF hochladen — die App liest Titel,
+  Zutaten und Zubereitung automatisch heraus (Texterkennung läuft komplett im
+  Browser, es wird nichts hochgeladen). Vor dem Speichern wird alles in einem
+  Formular angezeigt und lässt sich korrigieren. Eigene Rezepte tauchen
+  gleichwertig neben den mitgelieferten auf, ihre Zutaten zählen bei der
+  Einkaufsliste ganz normal mit
 - **Rezeptdetails** mit Nährwerten, Zutaten, Schritt-für-Schritt-Anleitung (Schritte
   lassen sich beim Kochen abhaken) und Portionsrechner
 - **Portionen ändern**: alle Mengen werden automatisch umgerechnet und
@@ -105,6 +111,11 @@ essens-app/
 │   │   ├── quantity.ts       Portionen skalieren, Einheiten, Formatierung
 │   │   ├── shopping.ts       Einkaufsliste: Zusammenrechnen, Gruppieren, Teilen
 │   │   ├── filters.ts        Filter und Textsuche
+│   │   ├── recipes.ts        Mitgelieferte + eigene Rezepte zusammenführen
+│   │   ├── textExtraction.ts Text aus Foto/PDF lesen (Tesseract.js, pdf.js)
+│   │   ├── recipeTextStructure.ts  Erkannten Text in Titel/Zutaten/Schritte teilen
+│   │   ├── ingredientParsing.ts    Freitext-Zutat → strukturierte Zutat
+│   │   ├── imageResize.ts    Fotos vor dem Speichern verkleinern
 │   │   ├── storage.ts        Speicher-Schicht (heute localStorage)
 │   │   ├── backup.ts         Datensicherung exportieren/einlesen
 │   │   ├── sync.ts           Zusammenführen zweier Geräte-Stände
@@ -116,8 +127,8 @@ essens-app/
 │   │   ├── AppContext.ts     Zustandstypen + useApp()
 │   │   └── AppProvider.tsx   Zustand & alle Aktionen
 │   ├── components/           RecipeCard, Sheet, BottomNav, Sterne, Toast
-│   └── pages/                Home, Rezepte, Detail, Lecker, Einkauf, Woche,
-│                             Einstellungen
+│   └── pages/                Home, Rezepte, Detail, Rezept hinzufügen, Lecker,
+│                             Einkauf, Woche, Einstellungen
 ├── public/                   App-Icons für den Homescreen
 ├── scripts/generate-seed.ts  Erzeugt die Datenbankdatei aus den Rezepten
 ├── server/
@@ -128,7 +139,8 @@ essens-app/
 │   ├── test-server.mjs       22 Prüfungen der Anmeldung und Absicherung
 │   └── betrieb/              Vorlagen: systemd, launchd, HTTPS (Caddy)
 ├── supabase/                 Optional: Datenbank in der Cloud (nicht nötig)
-└── test/core.test.ts         41 Tests der Kernlogik
+└── test/                     71 Tests der Kernlogik (Rezepte, Einkaufsliste,
+                              Zutaten-Erkennung, Text-Erkennung, Geräte-Abgleich)
 ```
 
 ### Wo werden die Daten gespeichert?
@@ -165,9 +177,24 @@ Für eine Familie reicht der eigene Server vollkommen.
 
 ## Rezepte ergänzen
 
-Neue Rezepte kommen in `src/data/recipes.ts`. Ein Rezept braucht eine eindeutige
-`id`, Mengen für `baseServings: 4` und nur Zutaten, deren `id` in
-`src/data/ingredients.ts` existiert. Die Tests prüfen das automatisch:
+**Der einfachste Weg:** In der App auf **Rezepte → +** (oder auf der Startseite
+„Eigenes Rezept per Foto oder PDF hinzufügen“) tippen, ein Foto oder eine PDF-Datei
+auswählen. Die Texterkennung läuft direkt im Browser — es wird nichts
+hochgeladen — und befüllt ein Formular mit Titel, Zutaten und Zubereitung, das
+sich vor dem Speichern noch korrigieren lässt.
+
+Dabei versucht die App, jede Zutatenzeile einer bekannten Zutat zuzuordnen
+(auch bei anderen Namen wie „Karotte“ statt „Möhre“ — siehe
+`src/lib/ingredientParsing.ts`), damit gleiche Zutaten in der Einkaufsliste
+weiterhin richtig zusammengerechnet werden. Was nicht erkannt wird, legt die
+App als neue Zutat an; unbekannte Nährwerte werden ehrlich als „unbekannt“
+angezeigt statt geraten. Eigene Rezepte lassen sich auf ihrer Detailseite über
+„Eigenes Rezept löschen“ wieder entfernen.
+
+**Für mitgelieferte Rezepte** (die 30 fest in der App enthaltenen): Diese kommen
+in `src/data/recipes.ts`. Ein Rezept braucht eine eindeutige `id`, Mengen für
+`baseServings: 4` und nur Zutaten, deren `id` in `src/data/ingredients.ts`
+existiert. Die Tests prüfen das automatisch:
 
 ```bash
 npm test

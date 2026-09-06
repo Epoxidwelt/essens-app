@@ -80,6 +80,8 @@ export function createInitialState(): AppState {
       weekStart: currentWeekStart(),
       items: [],
     },
+    customRecipes: [],
+    customIngredients: [],
   };
 }
 
@@ -93,5 +95,7 @@ export function hydrate(stored: AppState | null): AppState {
     ratings: stored.ratings ?? [],
     shoppingList: { ...initial.shoppingList, ...stored.shoppingList, items: stored.shoppingList?.items ?? [] },
     weeklyPlan: { ...initial.weeklyPlan, ...stored.weeklyPlan, items: stored.weeklyPlan?.items ?? [] },
+    customRecipes: stored.customRecipes ?? [],
+    customIngredients: stored.customIngredients ?? [],
   };
 }

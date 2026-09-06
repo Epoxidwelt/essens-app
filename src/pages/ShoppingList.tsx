@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { INGREDIENT_BY_ID, INGREDIENTS, SHOP_CATEGORY_LABEL } from '../data/ingredients';
-import { RECIPE_BY_ID } from '../data/recipes';
+import { INGREDIENTS, SHOP_CATEGORY_LABEL } from '../data/ingredients';
 import { groupByCategory, itemAmount, shoppingListToText } from '../lib/shopping';
 import { formatQuantity } from '../lib/quantity';
 import { useApp } from '../store/AppContext';
@@ -12,8 +11,16 @@ import type { Unit } from '../types';
 const UNITS: Unit[] = ['Stk', 'g', 'ml', 'Packung', 'Bund', 'Dose'];
 
 export function ShoppingList() {
-  const { state, toggleShoppingItem, deleteShoppingItem, clearCheckedItems, clearShoppingList, addManualItem } =
-    useApp();
+  const {
+    state,
+    getRecipe,
+    getIngredient,
+    toggleShoppingItem,
+    deleteShoppingItem,
+    clearCheckedItems,
+    clearShoppingList,
+    addManualItem,
+  } = useApp();
   const { showToast, toast } = useToast();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
@@ -30,7 +37,7 @@ export function ShoppingList() {
    * dort zeigen wir den Text zum Markieren an, damit Teilen immer moeglich ist.
    */
   async function shareList() {
-    const text = shoppingListToText(items);
+    const text = shoppingListToText(items, state.customIngredients);
     try {
       if (navigator.share) {
         await navigator.share({ title: 'Einkaufsliste', text });
@@ -52,17 +59,17 @@ export function ShoppingList() {
   const items = useMemo(
     () =>
       hidePantry
-        ? state.shoppingList.items.filter((i) => !INGREDIENT_BY_ID[i.ingredientId]?.pantry)
+        ? state.shoppingList.items.filter((i) => !getIngredient(i.ingredientId)?.pantry)
         : state.shoppingList.items,
     [state.shoppingList.items, hidePantry],
   );
   const pantryCount = state.shoppingList.items.length - items.length;
-  const groups = useMemo(() => groupByCategory(items), [items]);
+  const groups = useMemo(() => groupByCategory(items, state.customIngredients), [items, state.customIngredients]);
   const open = items.filter((i) => !i.checked).length;
   const done = items.length - open;
   const hiddenPantryCount = hidePantry
     ? pantryCount
-    : state.shoppingList.items.filter((i) => INGREDIENT_BY_ID[i.ingredientId]?.pantry).length;
+    : state.shoppingList.items.filter((i) => getIngredient(i.ingredientId)?.pantry).length;
 
   const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -73,7 +80,7 @@ export function ShoppingList() {
   /** Rezeptnamen, aus denen eine Position stammt. */
   function sourceLabel(recipeIds: string[]): string {
     const names = [...new Set(recipeIds)]
-      .map((id) => RECIPE_BY_ID[id]?.name)
+      .map((id) => getRecipe(id)?.name)
       .filter(Boolean) as string[];
     if (names.length === 0) return 'manuell hinzugefügt';
     if (names.length <= 2) return names.join(' · ');
@@ -143,7 +150,7 @@ export function ShoppingList() {
                 <h3>{SHOP_CATEGORY_LABEL[group.category]}</h3>
                 {group.items.map((item) => {
                   const q = itemAmount(item);
-                  const ingredient = INGREDIENT_BY_ID[item.ingredientId];
+                  const ingredient = getIngredient(item.ingredientId);
                   return (
                     <div
                       key={item.id}

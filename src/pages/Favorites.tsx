@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom';
-import { RECIPE_BY_ID } from '../data/recipes';
 import { plural } from '../lib/text';
 import { useApp } from '../store/AppContext';
 import { RecipeCard } from '../components/RecipeCard';
 
 export function Favorites() {
-  const { state } = useApp();
+  const { state, getRecipe } = useApp();
   const recipes = state.favorites
-    .map((f) => RECIPE_BY_ID[f.recipeId])
+    .map((f) => getRecipe(f.recipeId))
     .filter((r): r is NonNullable<typeof r> => Boolean(r));
 
   return (
