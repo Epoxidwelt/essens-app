@@ -19,6 +19,8 @@ import { networkInterfaces } from 'node:os';
 import { extname, join, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { holeSeiteSicher } from './sicheresFetch.mjs';
+import { verarbeiteHtml } from './rezeptImport.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const DIST = join(ROOT, 'dist');
@@ -145,6 +147,27 @@ function merkeFehlversuch(absender) {
   eintrag.anzahl += 1;
   eintrag.zuletzt = Date.now();
   fehlversuche.set(absender, eintrag);
+}
+
+/**
+ * Bremst den Rezept-Import: Der Server ruft dabei fremde Webseiten in
+ * eurem Namen ab – ohne Deckel koennte das missbraucht werden, um damit
+ * andere Seiten zu ueberlasten. 15 Importe pro Minute je Geraet reichen
+ * fuer den normalen Gebrauch bei weitem.
+ */
+const importVersuche = new Map();
+const IMPORT_LIMIT = 15;
+const IMPORT_FENSTER_MS = 60 * 1000;
+
+function importRateLimitUeberschritten(absender) {
+  const jetzt = Date.now();
+  const eintrag = importVersuche.get(absender);
+  if (!eintrag || jetzt - eintrag.fensterStart > IMPORT_FENSTER_MS) {
+    importVersuche.set(absender, { anzahl: 1, fensterStart: jetzt });
+    return false;
+  }
+  eintrag.anzahl += 1;
+  return eintrag.anzahl > IMPORT_LIMIT;
 }
 
 /** Prüft die mitgeschickte Zugangsmarke. */
@@ -303,6 +326,38 @@ const server = createServer(async (req, res) => {
     sitzungen.clear();
     await speichereSitzungen();
     json(res, 200, { abgemeldet: anzahl });
+    return;
+  }
+
+  if (url.pathname === '/api/rezept-import') {
+    // Liest Titel, Zutaten und Zubereitung von einer Webseite oder einem
+    // YouTube-Video – das darf der Browser aus Sicherheitsgruenden nicht
+    // selbst (CORS), deshalb uebernimmt der Server das.
+    if (req.method !== 'POST') {
+      json(res, 405, { fehler: 'Methode nicht erlaubt' });
+      return;
+    }
+    if (!angemeldet(req)) {
+      json(res, 401, { fehler: 'Anmeldung erforderlich' });
+      return;
+    }
+    const absender = req.socket.remoteAddress ?? 'unbekannt';
+    if (importRateLimitUeberschritten(absender)) {
+      json(res, 429, { fehler: 'Zu viele Importe kurz hintereinander. Bitte kurz warten.' });
+      return;
+    }
+    try {
+      const { url: gewuenschteUrl } = JSON.parse(await readBody(req, 4_000));
+      if (typeof gewuenschteUrl !== 'string' || !gewuenschteUrl.trim()) {
+        json(res, 400, { fehler: 'Keine Adresse angegeben.' });
+        return;
+      }
+      const html = await holeSeiteSicher(gewuenschteUrl.trim());
+      const vorschlag = verarbeiteHtml(html, gewuenschteUrl.trim());
+      json(res, 200, vorschlag);
+    } catch (e) {
+      json(res, 400, { fehler: e instanceof Error ? e.message : 'Das hat leider nicht funktioniert.' });
+    }
     return;
   }
 

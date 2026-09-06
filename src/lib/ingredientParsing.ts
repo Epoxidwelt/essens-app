@@ -67,6 +67,10 @@ const SYNONYME: Record<string, string> = {
   fruehlingszwiebeln: 'fruehlingszwiebel',
   knoblauchzehen: 'knoblauch',
   kartoffeln: 'kartoffel',
+  cherrytomate: 'kirschtomaten',
+  cherrytomaten: 'kirschtomaten',
+  paprikaschote: 'paprika',
+  paprikaschoten: 'paprika',
 };
 
 /** "Salz und Pfeffer" ist eine Aufzählung, keine einzelne Zutat – nicht zusammenfassend abgleichen. */
@@ -108,23 +112,43 @@ export function findeBekannteZutat(
   // zusammenschrumpfen. Lieber als neue, eigene Zutat anlegen.
   if (istAufzaehlung(name)) return null;
 
-  // Danach: Stammzutat ist im gesuchten Text enthalten oder umgekehrt
-  // (z. B. "Zwiebeln" enthält "zwiebel", "rote Zwiebel" enthält "zwiebel").
-  // Der Treffer muss einen Grossteil des gesuchten Texts abdecken, sonst
-  // wuerden kurze Woerter wie "Ei" in vielen Namen zufaellig auftauchen.
+  // Danach: der gesuchte Text enthält den Namen einer Stammzutat als Wortstamm,
+  // egal an welcher Stelle (z. B. "Zwiebeln" enthält "zwiebel", "Etwas
+  // Muskatnuss" enthält "muskatnuss"). Bei mehreren Treffern gewinnt der
+  // laengste (spezifischste) Wortstamm.
+  const wortstammTreffer = besterTreffer(
+    kandidaten,
+    (kandidatName) => gesucht.includes(kandidatName) && kandidatName.length / gesucht.length >= 0.5,
+  );
+  if (wortstammTreffer) return wortstammTreffer;
+
+  // Umgekehrt: der Stammname ist laenger und beginnt mit dem gesuchten Text
+  // (z. B. "Hähnchenbrust" -> "Hähnchenbrustfilet"). Bewusst nur als Vorsilbe
+  // (startsWith), nicht als beliebige Teilzeichenkette – sonst wuerde ein
+  // generischer Begriff wie "Tomaten" faelschlich zu "Kirschtomaten"
+  // aufgewertet, nur weil "tomaten" zufaellig das Ende dieses laengeren,
+  // anders zusammengesetzten Namens ist. Ein angehaengtes Wort wie "-filet"
+  // beschreibt meist nur eine Form, ein vorangestelltes wie "Kirsch-" aber
+  // oft eine andere Zutat.
+  return besterTreffer(
+    kandidaten,
+    (kandidatName) => kandidatName.startsWith(gesucht) && gesucht.length / kandidatName.length >= 0.5,
+  );
+}
+
+function besterTreffer(
+  kandidaten: Ingredient[],
+  passt: (kandidatName: string) => boolean,
+): Ingredient | null {
   let bester: Ingredient | null = null;
   let besteLaenge = 0;
   for (const kandidat of kandidaten) {
     const kandidatName = normalisiere(kandidat.name);
     if (kandidatName.length < 3) continue;
-    const kuerzer = Math.min(kandidatName.length, gesucht.length);
-    const laenger = Math.max(kandidatName.length, gesucht.length);
-    const deckungsgrad = kuerzer / laenger;
-    if ((gesucht.includes(kandidatName) || kandidatName.includes(gesucht)) && deckungsgrad >= 0.5) {
-      if (kandidatName.length > besteLaenge) {
-        bester = kandidat;
-        besteLaenge = kandidatName.length;
-      }
+    if (!passt(kandidatName)) continue;
+    if (kandidatName.length > besteLaenge) {
+      bester = kandidat;
+      besteLaenge = kandidatName.length;
     }
   }
   return bester;
@@ -154,12 +178,24 @@ export interface GeparsteZutat {
  * Zeile bleibt so nutzbar, auch wenn die Erkennung nicht perfekt war.
  */
 export function parseZutatenzeile(zeile: string, bekannteEigene: Ingredient[] = []): GeparsteZutat | null {
-  const bereinigt = zeile.trim().replace(/^[-•*]\s*/, '');
+  let bereinigt = zeile.trim().replace(/^[-•*]\s*/, '');
   if (!bereinigt) return null;
+
+  // Klammerzusatz am Zeilenende abtrennen: "Tomaten (geschält)" -> Hinweis
+  // "geschält". Nur, wenn davor ein Leerzeichen steht – ohne Leerzeichen
+  // direkt am Wort ("Zwiebel(n)") ist es meist eine Pluralendung und bleibt
+  // Teil des Namens.
+  let klammerHinweis: string | undefined;
+  const klammerMatch = bereinigt.match(/\s\(([^()]+)\)\s*$/);
+  if (klammerMatch) {
+    klammerHinweis = klammerMatch[1].trim();
+    bereinigt = bereinigt.slice(0, klammerMatch.index).trim();
+  }
 
   // Zusatz nach einem Komma abtrennen: "Zwiebel, fein gewürfelt".
   const [hauptteil, ...rest] = bereinigt.split(',');
-  const note = rest.join(',').trim() || undefined;
+  const kommaHinweis = rest.join(',').trim() || undefined;
+  const note = [kommaHinweis, klammerHinweis].filter(Boolean).join(' · ') || undefined;
 
   const worte = hauptteil.trim().split(/\s+/);
   let index = 0;

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { formatQuantity, scaleAmount } from '../lib/quantity';
+import { istYoutubeLink } from '../lib/youtube';
 import { useApp } from '../store/AppContext';
 import { describeHousehold, plural } from '../lib/text';
 import { Sheet } from '../components/Sheet';
@@ -70,6 +71,8 @@ export function RecipeDetail() {
   }
 
   const naehrwerteBekannt = recipe.nutrition.kcal > 0;
+  const istVideoQuelle = istYoutubeLink(recipe.videoUrl ?? '');
+  const quellenEmoji = recipe.videoUrl ? (istVideoQuelle ? '📺' : '🔗') : '📷';
   const fav = isFavorite(recipe.id);
   const rating = averageRating(recipe.id);
   const reviews = ratingsFor(recipe.id);
@@ -105,7 +108,7 @@ export function RecipeDetail() {
           {recipe.kidFriendly && <span className="tag">👨‍👩‍👧‍👦 Kinderfreundlich</span>}
           {recipe.onePot && <span className="tag tag-accent">🥘 One Pot</span>}
           <span className="tag">📶 {recipe.difficulty}</span>
-          {eigenesRezept && <span className="tag">{recipe.videoUrl ? '📺' : '📷'} Eigenes Rezept</span>}
+          {eigenesRezept && <span className="tag">{quellenEmoji} Eigenes Rezept</span>}
         </div>
 
         {recipe.videoUrl && (
@@ -116,7 +119,7 @@ export function RecipeDetail() {
             className="btn btn-block"
             style={{ marginTop: 12 }}
           >
-            ▶️ Video auf YouTube ansehen
+            {istVideoQuelle ? '▶️ Video auf YouTube ansehen' : '🔗 Zur Original-Webseite'}
           </a>
         )}
 

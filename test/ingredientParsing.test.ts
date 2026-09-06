@@ -30,6 +30,27 @@ describe('Zutatenzeilen erkennen', () => {
     expect(parseZutatenzeile('200 Gramm Mehl')?.recipeIngredient.unit).toBe('g');
   });
 
+  it('erkennt einen Klammerzusatz am Zeilenende als Hinweis (nicht als Teil des Namens)', () => {
+    const r = parseZutatenzeile('400 g Rigatoni (oder Penne)');
+    expect(r?.recipeIngredient.note).toBe('oder Penne');
+    expect(r?.ingredient.name).toBe('Rigatoni');
+  });
+
+  it('lässt eine direkt angehängte Klammer (Pluralendung) am Wort, statt sie als Hinweis abzutrennen', () => {
+    const r = parseZutatenzeile('1 Zwiebel(n)');
+    expect(r?.recipeIngredient.note).toBeUndefined();
+    expect(r?.ingredient.id).toBe('zwiebel');
+  });
+
+  it('kombiniert Komma- und Klammerzusatz, wenn beide vorkommen', () => {
+    const r = parseZutatenzeile('1 Chilischote(n), fein gehackt (frische)');
+    expect(r?.recipeIngredient.note).toBe('fein gehackt · frische');
+  });
+
+  it('erkennt "Cherrytomate" als Synonym für Kirschtomaten', () => {
+    expect(parseZutatenzeile('400 g Cherrytomaten')?.recipeIngredient.ingredientId).toBe('kirschtomaten');
+  });
+
   it('legt eine neue Zutat an, wenn nichts passt', () => {
     const r = parseZutatenzeile('300 g Tofu');
     expect(r?.neu).toBe(true);
@@ -67,6 +88,16 @@ describe('Bekannte Zutat finden', () => {
 
   it('liefert null für zu kurze oder unpassende Begriffe', () => {
     expect(findeBekannteZutat('xyz123')).toBeNull();
+  });
+
+  it('wertet einen generischen Begriff nicht fälschlich zu einer spezifischeren Zutat auf', () => {
+    // "Tomaten" darf nicht zu "Kirschtomaten" werden, nur weil "tomaten" zufällig
+    // das Ende des längeren, spezifischeren Namens ist (echter Fund bei echten
+    // Chefkoch-Rezepten: "500 g Tomaten, passierte" wurde sonst zu Kirschtomaten).
+    expect(findeBekannteZutat('Tomaten')?.id).toBe('tomate');
+    expect(findeBekannteZutat('Tomate')?.id).toBe('tomate');
+    // Der eigentliche Anwendungsfall der Regel bleibt weiter erlaubt:
+    expect(findeBekannteZutat('Kirschtomaten')?.id).toBe('kirschtomaten');
   });
 });
 

@@ -15,6 +15,11 @@
 const OEMBED_URL = 'https://www.youtube.com/oembed';
 
 /** Erkennt gängige YouTube-Adressformen und liefert die Video-ID. */
+/** Nur zur Anzeige (Symbol/Beschriftung) – die eigentliche Erkennung macht der Server. */
+export function istYoutubeLink(eingabe: string): boolean {
+  return extrahiereVideoId(eingabe) !== null;
+}
+
 export function extrahiereVideoId(eingabe: string): string | null {
   const text = eingabe.trim();
   if (!text) return null;

@@ -59,6 +59,22 @@ Einkaufswagen — das soll zu Hause nicht wieder aufpoppen.
 etwas löscht, kann der gelöschte Eintrag wieder auftauchen. Das ist der Preis
 dafür, dass niemals versehentlich Daten verschwinden.
 
+## Rezepte aus Links lesen
+
+Der Server liest auf Wunsch der App Webseiten und YouTube-Videos vor
+(`POST /api/rezept-import`) — das darf der Browser aus Sicherheitsgründen
+(CORS) nicht selbst. Viele Rezept-Webseiten hinterlegen ihre Zutaten und
+Zubereitung in einem für Suchmaschinen lesbaren Format; findet der Server das,
+kommen exakte Zutaten, Mengen, Bild, Portionen und Zeit zurück statt nur
+grobem Text (siehe `rezeptImport.mjs`).
+
+Da der Server dabei eine vom Nutzer eingegebene Adresse abruft, ist das
+sorgfältig abgesichert (`sicheresFetch.mjs`): nur http/https, keine
+internen/privaten Adressen (auch nicht über eine Weiterleitung dorthin), eine
+Zeit- und Größenbegrenzung, und wie jeder andere Endpunkt hinter dem
+Familienpasswort. Zusätzlich sind Importe auf 15 pro Minute begrenzt, damit der
+Server nicht dazu missbraucht werden kann, andere Seiten zu überlasten.
+
 ## Passwortschutz
 
 Ohne gesetztes Passwort läuft der Server offen — im eigenen WLAN vertretbar,

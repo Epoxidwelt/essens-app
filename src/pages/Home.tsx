@@ -108,7 +108,7 @@ export function Home() {
           fontSize: 14,
         }}
       >
-        📷 Eigenes Rezept per Foto oder PDF hinzufügen
+        📷 Eigenes Rezept per Foto, PDF oder Link hinzufügen
       </Link>
 
       <div className="tiles" style={{ marginTop: 14 }}>

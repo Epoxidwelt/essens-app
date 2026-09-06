@@ -4,7 +4,8 @@ import type { Ingredient, RecipeCategory, RecipeIngredient } from '../types';
 import { erkenneRezept } from '../lib/textExtraction';
 import { strukturiereRezeptText } from '../lib/recipeTextStructure';
 import { parseZutatenText } from '../lib/ingredientParsing';
-import { holeVideoInfo, type YoutubeVideoInfo } from '../lib/youtube';
+import { holeVideoInfo, istYoutubeLink, type YoutubeVideoInfo } from '../lib/youtube';
+import { importiereRezeptVonLink } from '../lib/syncClient';
 import { useApp } from '../store/AppContext';
 import { useToast } from '../components/Toast';
 
@@ -100,25 +101,103 @@ export function AddRecipe() {
     setSchritt('youtube');
   }
 
-  async function videoSuchen() {
-    if (!ytEingabe.trim()) return;
+  /**
+   * Übernimmt einen Link. Erster Versuch: der Familien-Server liest die Seite
+   * selbst (funktioniert bei YouTube und den meisten Rezept-Webseiten, oft
+   * sogar mit exakten Zutaten statt nur grobem Text). Ist kein Server
+   * erreichbar, bleibt bei YouTube wenigstens Titel/Vorschaubild automatisch
+   * verfügbar (ohne Server erreichbare, öffentliche Schnittstelle); bei
+   * anderen Seiten bleibt dann nur die Handeingabe.
+   */
+  async function linkUebernehmen() {
+    const eingabe = ytEingabe.trim();
+    if (!eingabe) return;
     setYtLaedt(true);
     setYtFehler(null);
     setYtInfo(null);
-    const info = await holeVideoInfo(ytEingabe);
-    setYtLaedt(false);
-    if (!info) {
-      setYtFehler(
-        'Video nicht gefunden. Bitte den Link prüfen – trotzdem lässt sich unten von Hand weitermachen.',
-      );
+
+    const serverErgebnis = await importiereRezeptVonLink(eingabe);
+
+    if (serverErgebnis.art === 'ok') {
+      const vorschlag = serverErgebnis.wert;
+      const bildAusServer = vorschlag.bild;
+
+      if (vorschlag.art === 'strukturiert') {
+        // Bestmöglicher Fall: die Seite liefert exakte Zutaten/Schritte –
+        // direkt ins Formular, kein Abtippen oder Einfügen nötig.
+        setYtLaedt(false);
+        setName(vorschlag.titel || 'Neues Rezept');
+        setBeschreibung(vorschlag.beschreibung);
+        setZutatenText(vorschlag.zutatenZeilen.join('\n'));
+        setZubereitungText(vorschlag.zubereitungsSchritte.join('\n'));
+        if (vorschlag.portionen) setPortionen(vorschlag.portionen);
+        if (vorschlag.minuten) setMinuten(vorschlag.minuten);
+        setBild(bildAusServer);
+        setVideoUrl(eingabe);
+        setHinweisUngenau(false);
+        setSchritt('formular');
+        return;
+      }
+
+      // Kein strukturiertes Rezept gefunden, aber die Seite selbst wurde
+      // gelesen – meist reicht der gefundene Text trotzdem zum Zerlegen.
+      if (vorschlag.rohtext.trim().length >= 20) {
+        setYtLaedt(false);
+        formularVorbefuellen(vorschlag.rohtext);
+        if (vorschlag.titel) setName(vorschlag.titel);
+        setBild(bildAusServer);
+        setVideoUrl(eingabe);
+        setSchritt('formular');
+        return;
+      }
+
+      // Seite erreicht, aber nichts Brauchbares gefunden – Vorschau zeigen
+      // und von Hand weitermachen lassen.
+      setYtLaedt(false);
+      setYtInfo({
+        videoId: '',
+        titel: vorschlag.titel ?? '',
+        kanal: '',
+        vorschaubild: bildAusServer ?? '',
+        videoUrl: eingabe,
+      });
       return;
     }
-    setYtInfo(info);
+
+    if (serverErgebnis.art === 'abgelehnt') {
+      setYtLaedt(false);
+      setYtFehler(serverErgebnis.meldung);
+      return;
+    }
+
+    if (serverErgebnis.art === 'anmeldung') {
+      setYtLaedt(false);
+      setYtFehler('Der Familien-Server verlangt eine Anmeldung. Bitte zuerst in den Einstellungen anmelden.');
+      return;
+    }
+
+    // Kein Server erreichbar: bei YouTube wenigstens Titel/Vorschaubild holen
+    // (funktioniert ohne Server, siehe src/lib/youtube.ts).
+    if (istYoutubeLink(eingabe)) {
+      const info = await holeVideoInfo(eingabe);
+      setYtLaedt(false);
+      if (info) {
+        setYtInfo(info);
+        return;
+      }
+    } else {
+      setYtLaedt(false);
+    }
+    setYtFehler(
+      istYoutubeLink(eingabe)
+        ? 'Video nicht gefunden. Bitte den Link prüfen – trotzdem lässt sich unten von Hand weitermachen.'
+        : 'Kein Familien-Server erreichbar – für Rezept-Webseiten (außer YouTube) wird er zum automatischen Lesen gebraucht. Bitte von Hand weitermachen.',
+    );
   }
 
-  /** Übernimmt Titel/Vorschaubild des Videos und die eingefügte Beschreibung ins Formular. */
-  function youtubeUebernehmen() {
-    setBild(ytInfo?.vorschaubild);
+  /** Übernimmt Titel/Vorschaubild (z. B. per oEmbed) und die eingefügte Beschreibung ins Formular. */
+  function vorschauUebernehmen() {
+    setBild(ytInfo?.vorschaubild || undefined);
     setVideoUrl(ytInfo?.videoUrl);
     if (ytBeschreibung.trim()) {
       formularVorbefuellen(ytBeschreibung);
@@ -160,7 +239,10 @@ export function AddRecipe() {
         description: beschreibung.trim(),
         ...(bild ? { image: bild } : {}),
         ...(videoUrl ? { videoUrl } : {}),
-        placeholder: { emoji: videoUrl ? '📺' : '📷', tone: zufaelligerTon() },
+        placeholder: {
+          emoji: videoUrl ? (istYoutubeLink(videoUrl) ? '📺' : '🔗') : '📷',
+          tone: zufaelligerTon(),
+        },
         baseServings: portionen,
         timeMinutes: minuten,
         difficulty: 'einfach',
@@ -229,7 +311,7 @@ export function AddRecipe() {
             )}
 
             <button type="button" className="btn btn-ghost btn-block" onClick={youtubeStarten}>
-              📺 YouTube-Video-Link einfügen
+              🔗 Rezept-Link einfügen (YouTube oder Webseite)
             </button>
             <button type="button" className="btn btn-ghost btn-block" onClick={vonHandStarten}>
               ✏️ Stattdessen von Hand eingeben
@@ -249,9 +331,10 @@ export function AddRecipe() {
             </button>
 
             <div className="card">
-              <h3>YouTube-Link</h3>
+              <h3>Rezept-Link</h3>
               <p className="hint" style={{ marginTop: 4 }}>
-                Titel und Vorschaubild werden automatisch geholt.
+                YouTube-Video oder Rezept-Webseite (z. B. Chefkoch, Foodblog). Läuft der
+                Familien-Server, werden Zutaten und Zubereitung meist automatisch erkannt.
               </p>
               <div className="row" style={{ marginTop: 10, gap: 8 }}>
                 <input
@@ -259,8 +342,8 @@ export function AddRecipe() {
                   style={{ flex: 1 }}
                   value={ytEingabe}
                   onChange={(e) => setYtEingabe(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void videoSuchen()}
-                  placeholder="https://youtube.com/watch?v=…"
+                  onKeyDown={(e) => e.key === 'Enter' && void linkUebernehmen()}
+                  placeholder="https://…"
                   inputMode="url"
                   autoFocus
                 />
@@ -268,11 +351,12 @@ export function AddRecipe() {
                   type="button"
                   className="btn btn-primary"
                   disabled={!ytEingabe.trim() || ytLaedt}
-                  onClick={() => void videoSuchen()}
+                  onClick={() => void linkUebernehmen()}
                 >
-                  {ytLaedt ? '…' : 'Suchen'}
+                  {ytLaedt ? '…' : 'Übernehmen'}
                 </button>
               </div>
+              {ytLaedt && <p className="hint" style={{ marginTop: 8 }}>Das kann einige Sekunden dauern …</p>}
               {ytFehler && (
                 <p style={{ marginTop: 10, color: 'var(--accent)', fontSize: 14 }}>{ytFehler}</p>
               )}
@@ -280,13 +364,15 @@ export function AddRecipe() {
 
             {ytInfo && (
               <div className="card row" style={{ gap: 12 }}>
-                <img
-                  src={ytInfo.vorschaubild}
-                  alt=""
-                  style={{ width: 96, height: 54, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' }}
-                />
+                {ytInfo.vorschaubild && (
+                  <img
+                    src={ytInfo.vorschaubild}
+                    alt=""
+                    style={{ width: 96, height: 54, objectFit: 'cover', borderRadius: 10, flex: '0 0 auto' }}
+                  />
+                )}
                 <div>
-                  <div style={{ fontWeight: 650 }}>{ytInfo.titel}</div>
+                  <div style={{ fontWeight: 650 }}>{ytInfo.titel || 'Ohne Titel gefunden'}</div>
                   {ytInfo.kanal && <div className="hint">{ytInfo.kanal}</div>}
                 </div>
               </div>
@@ -296,8 +382,9 @@ export function AddRecipe() {
               <div className="card">
                 <h3>Beschreibung einfügen</h3>
                 <p className="hint" style={{ marginTop: 4 }}>
-                  Auf YouTube unter dem Video auf „Mehr“ tippen, den Text (meist mit Zutaten
-                  und Zubereitung) kopieren und hier einfügen.
+                  Bei YouTube: unter dem Video auf „Mehr“ tippen und den Text (meist mit
+                  Zutaten und Zubereitung) kopieren. Bei einer Webseite: den Rezepttext
+                  markieren und kopieren. Dann hier einfügen.
                 </p>
                 <textarea
                   className="textarea"
@@ -310,7 +397,7 @@ export function AddRecipe() {
             )}
 
             {(ytInfo || ytFehler) && (
-              <button type="button" className="btn btn-primary btn-block" onClick={youtubeUebernehmen}>
+              <button type="button" className="btn btn-primary btn-block" onClick={vorschauUebernehmen}>
                 Weiter
               </button>
             )}

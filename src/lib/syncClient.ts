@@ -118,6 +118,66 @@ export async function fetchState(): Promise<SyncErgebnis<RemoteState>> {
   }
 }
 
+/** Von einer Webseite übernommenes Rezept – exakt (schema.org gefunden) oder als Rohtext. */
+export type RezeptImportErgebnis =
+  | {
+      art: 'strukturiert';
+      titel: string;
+      beschreibung: string;
+      zutatenZeilen: string[];
+      zubereitungsSchritte: string[];
+      bild?: string;
+      portionen?: number;
+      minuten?: number;
+      nutrition?: { kcal: number; protein: number; carbs: number; fat: number };
+    }
+  | { art: 'text'; titel?: string; bild?: string; rohtext: string };
+
+/**
+ * Ergebnis eines Link-Imports: anders als die übrigen Serverabfragen wird
+ * hier zwischen "Server nicht erreichbar" und "Server hat abgelehnt"
+ * unterschieden – Letzteres hat einen konkreten, fuer den Nutzer sinnvollen
+ * Grund (z. B. eine ungueltige Adresse), der angezeigt werden soll.
+ */
+export type LinkImportErgebnis =
+  | { art: 'ok'; wert: RezeptImportErgebnis }
+  | { art: 'anmeldung' }
+  | { art: 'aus' }
+  | { art: 'abgelehnt'; meldung: string };
+
+/**
+ * Lässt den Familien-Server eine Webseite oder ein YouTube-Video lesen.
+ * Braucht laenger als die uebrigen Anfragen (der Server ruft selbst eine
+ * fremde Seite ab) – deshalb ein eigenes, grosszügigeres Zeitlimit.
+ */
+export async function importiereRezeptVonLink(url: string): Promise<LinkImportErgebnis> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  try {
+    const token = getToken();
+    const res = await fetch(`${BASE}/api/rezept-import`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
+    });
+    if (res.status === 401) return { art: 'anmeldung' };
+    if (res.status === 400 || res.status === 429) {
+      const daten = (await res.json().catch(() => ({}))) as { fehler?: string };
+      return { art: 'abgelehnt', meldung: daten.fehler ?? 'Das hat leider nicht funktioniert.' };
+    }
+    if (!res.ok) return { art: 'aus' };
+    return { art: 'ok', wert: (await res.json()) as RezeptImportErgebnis };
+  } catch {
+    return { art: 'aus' };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Schickt den eigenen Stand zum Server. Gibt die neue Version zurueck. */
 export async function pushState(state: AppState): Promise<SyncErgebnis<number>> {
   try {
