@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findeBekannteZutat, parseZutatenText, parseZutatenzeile } from '../src/lib/ingredientParsing';
+import { formatQuantity, scaleAmount } from '../src/lib/quantity';
 
 describe('Zutatenzeilen erkennen', () => {
   it('erkennt Menge, Einheit und bekannten Namen', () => {
@@ -47,6 +48,12 @@ describe('Zutatenzeilen erkennen', () => {
     expect(r?.recipeIngredient.note).toBe('fein gehackt · frische');
   });
 
+  it('erkennt "Pasta" als dasselbe wie "Nudeln", damit sich beide zusammenrechnen', () => {
+    // Rezept-Webseiten schreiben meist "Pasta", die App-Stammdaten "Nudeln" –
+    // ohne das Synonym landen zwei Positionen auf der Einkaufsliste.
+    expect(parseZutatenzeile('500 g Pasta')?.recipeIngredient.ingredientId).toBe('nudeln');
+  });
+
   it('erkennt "Cherrytomate" als Synonym für Kirschtomaten', () => {
     expect(parseZutatenzeile('400 g Cherrytomaten')?.recipeIngredient.ingredientId).toBe('kirschtomaten');
   });
@@ -58,18 +65,79 @@ describe('Zutatenzeilen erkennen', () => {
     expect(r?.ingredient.category).toBe('sonstiges');
   });
 
-  it('ohne erkennbare Menge wird 1 Stück angenommen, Zeile bleibt nutzbar', () => {
-    // "Etwas" ist ein Füllwort ohne Menge – die Zutat wird trotzdem erkannt.
+  it('erfindet keine Menge, wenn die Zeile keine nennt', () => {
+    // Gefunden an einem echten Chefkoch-Rezept: "Salz und Pfeffer" wurde als
+    // "1 Stk" gelesen und beim Umrechnen auf 4 statt 5 Portionen zu
+    // "½ Stk Salz und Pfeffer" – Unsinn. Ohne Zahl bleibt die Menge offen.
+    const r = parseZutatenzeile('Salz und Pfeffer');
+    expect(r?.recipeIngredient.amount).toBe(0);
+    expect(formatQuantity(r!.recipeIngredient.amount, r!.recipeIngredient.unit)).toBe('nach Bedarf');
+  });
+
+  it('erkennt die Zutat auch ohne Menge ("Etwas Muskatnuss")', () => {
     const r = parseZutatenzeile('Etwas Muskatnuss');
-    expect(r?.recipeIngredient.amount).toBe(1);
-    expect(r?.recipeIngredient.unit).toBe('Stk');
     expect(r?.ingredient.id).toBe('muskat');
+    expect(r?.recipeIngredient.amount).toBe(0);
+  });
+
+  it('eine offene Menge bleibt beim Umrechnen offen, statt zu schrumpfen', () => {
+    const r = parseZutatenzeile('Olivenöl');
+    const skaliert = scaleAmount(r!.recipeIngredient.amount, r!.recipeIngredient.unit, 5, 4);
+    expect(skaliert).toBe(0);
+  });
+
+  it('trennt auch einen verschachtelten Klammerzusatz vom Namen ab', () => {
+    // Echtes Chefkoch-Rezept: der Name hiess sonst
+    // "Pasta (eurer Wahl (wir nehmen gerne Spaghetti))" und rechnete sich
+    // in der Einkaufsliste mit keiner anderen Pasta mehr zusammen.
+    const r = parseZutatenzeile('500 g Pasta (eurer Wahl (wir nehmen gerne Spaghetti))');
+    expect(r?.recipeIngredient.ingredientId).toBe('nudeln');
+    expect(r?.recipeIngredient.note).toBe('eurer Wahl (wir nehmen gerne Spaghetti)');
+    expect(r?.recipeIngredient.amount).toBe(500);
+    // Ohne die Klammer-Behandlung hiesse die Zutat "Pasta (eurer Wahl (...))"
+    // und wuerde neu angelegt statt auf die Stammzutat zu treffen.
+    expect(r?.neu).toBe(false);
+  });
+
+  it('trennt eine Größenangabe vor dem Namen ab, damit sie das Zusammenrechnen nicht verhindert', () => {
+    const r = parseZutatenzeile('1 kleiner Rosmarinzweig(e) (frischer)');
+    expect(r?.ingredient.id).toBe('rosmarin');
+    expect(r?.recipeIngredient.note).toBe('kleiner · frischer');
+    // Dieselbe Zutat ohne Größenangabe landet auf derselben Stammzutat.
+    expect(parseZutatenzeile('2 Rosmarinzweige')?.ingredient.id).toBe('rosmarin');
+  });
+
+  it('kürzt eine Farbangabe nicht weg – "rote Zwiebel" ist eine andere Zutat', () => {
+    expect(parseZutatenzeile('2 rote Zwiebeln')?.ingredient.id).toBe('rote-zwiebel');
   });
 
   it('behandelt "X und Y" als eine (neue) Zutat statt sie auf nur eine zu verkürzen', () => {
     const r = parseZutatenzeile('Salz und Pfeffer');
     expect(r?.neu).toBe(true);
     expect(r?.ingredient.name).toBe('Salz und Pfeffer');
+  });
+
+  it('verliert eine Zutat nicht, wenn das Einheitenwort zugleich der Name ist', () => {
+    // "2 Knoblauchzehen" verschwand komplett aus dem Rezept: "Knoblauchzehen"
+    // wurde als Einheit verbraucht, danach war kein Name mehr uebrig.
+    const r = parseZutatenzeile('2 Knoblauchzehen');
+    expect(r).not.toBeNull();
+    expect(r?.recipeIngredient).toMatchObject({ ingredientId: 'knoblauch', amount: 2, unit: 'Zehe' });
+  });
+
+  it('erkennt eine Einheit auch mit Klammer-Pluralendung, wie Rezeptseiten sie schreiben', () => {
+    // Genau diese Schreibweise liefert Chefkoch aus.
+    const r = parseZutatenzeile('2 Knoblauchzehe(n)');
+    expect(r?.recipeIngredient).toMatchObject({ ingredientId: 'knoblauch', amount: 2, unit: 'Zehe' });
+    // Damit rechnet sich die importierte Zeile mit der Schreibweise der
+    // mitgelieferten Rezepte ("2 Zehen") auf der Einkaufsliste zusammen.
+    expect(parseZutatenzeile('2 Zehen Knoblauch')?.recipeIngredient.unit).toBe('Zehe');
+  });
+
+  it('verwechselt Knoblauch nicht mit Lauch', () => {
+    expect(parseZutatenzeile('2 Zehen Knoblauch')?.ingredient.id).toBe('knoblauch');
+    expect(findeBekannteZutat('Knoblauch')?.id).toBe('knoblauch');
+    expect(findeBekannteZutat('Lauch')?.id).toBe('lauch');
   });
 
   it('ignoriert leere Zeilen und Aufzählungszeichen', () => {

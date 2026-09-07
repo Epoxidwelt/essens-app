@@ -105,6 +105,7 @@ export const INGREDIENTS: Ingredient[] = [
   ing('paprikapulver', 'Paprikapulver edelsüß', 'gewuerze', true),
   ing('oregano', 'Oregano', 'gewuerze', true),
   ing('thymian', 'Thymian', 'gewuerze', true),
+  ing('rosmarin', 'Rosmarin', 'gewuerze', true),
   ing('italienische-kraeuter', 'Italienische Kräuter', 'gewuerze', true),
   ing('kreuzkuemmel', 'Kreuzkümmel gemahlen', 'gewuerze', true),
   ing('currypulver', 'Currypulver mild', 'gewuerze', true),

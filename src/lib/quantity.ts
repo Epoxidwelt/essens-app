@@ -109,8 +109,20 @@ export function displayQuantity(amount: number, unit: Unit): { amount: number; u
 /** Einheiten, bei denen Brueche natuerlicher wirken als Dezimalzahlen. */
 const FRACTION_UNITS: Unit[] = ['Stk', 'EL', 'TL', 'Bund', 'Zehe', 'Dose', 'Packung', 'Scheibe'];
 
-/** Fertiger Anzeigetext, z. B. "1,5 kg" oder "½ Bund". */
+/**
+ * Menge 0 heisst: Das Rezept nennt gar keine Menge ("Salz und Pfeffer", "Öl").
+ * Statt eine Menge zu erfinden, die dann auch noch mitskaliert wuerde
+ * ("½ Stk Salz und Pfeffer"), wird das als solches angezeigt.
+ */
+export const OHNE_MENGE = 0;
+
+export function istOhneMenge(amount: number): boolean {
+  return amount <= 0;
+}
+
+/** Fertiger Anzeigetext, z. B. "1,5 kg", "½ Bund" oder "nach Bedarf". */
 export function formatQuantity(amount: number, unit: Unit): string {
+  if (istOhneMenge(amount)) return 'nach Bedarf';
   const d = displayQuantity(amount, unit);
   const text = FRACTION_UNITS.includes(d.unit)
     ? formatNumber(d.amount)

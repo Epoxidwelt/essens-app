@@ -1,5 +1,6 @@
 import type { Ingredient, RecipeIngredient, Unit } from '../types';
 import { INGREDIENTS } from '../data/ingredients';
+import { OHNE_MENGE } from './quantity';
 
 /**
  * Wandelt eine frei eingetippte oder aus Foto/PDF erkannte Zutatenzeile
@@ -53,8 +54,11 @@ function parseAmount(token: string): number | null {
 
 function parseUnit(token: string | undefined): Unit | null {
   if (!token) return null;
+  // Rezeptseiten schreiben die Pluralendung oft in Klammern ("Knoblauchzehe(n)",
+  // "Stück(e)") – fuer die Einheitenerkennung stoert sie nur.
+  const varianten = [token, token.replace(/\([^()]*\)$/, '')];
   for (const [muster, einheit] of UNIT_ALIASES) {
-    if (muster.test(token)) return einheit;
+    if (varianten.some((v) => v && muster.test(v))) return einheit;
   }
   return null;
 }
@@ -66,7 +70,13 @@ const SYNONYME: Record<string, string> = {
   moehren: 'moehre',
   fruehlingszwiebeln: 'fruehlingszwiebel',
   knoblauchzehen: 'knoblauch',
+  // Ohne diesen Eintrag landet "Knoblauch" beim Teilstring-Abgleich auf
+  // "Lauch" – zwei voellig verschiedene Zutaten.
+  knoblauch: 'knoblauch',
+  knoblauchzehe: 'knoblauch',
   kartoffeln: 'kartoffel',
+  pasta: 'nudeln',
+  nudel: 'nudeln',
   cherrytomate: 'kirschtomaten',
   cherrytomaten: 'kirschtomaten',
   paprikaschote: 'paprika',
@@ -76,6 +86,51 @@ const SYNONYME: Record<string, string> = {
 /** "Salz und Pfeffer" ist eine Aufzählung, keine einzelne Zutat – nicht zusammenfassend abgleichen. */
 function istAufzaehlung(text: string): boolean {
   return /\bund\b/i.test(text);
+}
+
+/**
+ * Trennt einen Klammerzusatz am Zeilenende ab: "Tomaten (geschält)" -> Hinweis
+ * "geschält". Klammern dürfen dabei verschachtelt sein ("Pasta (eurer Wahl (wir
+ * nehmen gerne Spaghetti))") – sonst bliebe der ganze Zusatz Teil des Namens und
+ * die Zutat würde in der Einkaufsliste mit nichts mehr zusammengerechnet.
+ *
+ * Nur mit Leerzeichen davor: direkt am Wort ("Zwiebel(n)") ist es meist eine
+ * Pluralendung und bleibt Teil des Namens.
+ */
+function trenneKlammerzusatz(text: string): { rumpf: string; hinweis?: string } {
+  if (!text.endsWith(')')) return { rumpf: text };
+  let tiefe = 0;
+  for (let i = text.length - 1; i >= 0; i -= 1) {
+    if (text[i] === ')') tiefe += 1;
+    else if (text[i] === '(') {
+      tiefe -= 1;
+      if (tiefe > 0) continue;
+      if (i === 0 || text[i - 1] !== ' ') return { rumpf: text };
+      const hinweis = text.slice(i + 1, -1).trim();
+      const rumpf = text.slice(0, i).trim();
+      if (!hinweis || !rumpf) return { rumpf: text };
+      return { rumpf, hinweis };
+    }
+  }
+  return { rumpf: text };
+}
+
+/**
+ * Größen- und Frischeangaben vor dem Namen. Sie sagen nichts darüber, *was*
+ * gekauft wird – bleiben sie im Namen stehen, wird aus "kleiner Rosmarinzweig"
+ * eine eigene Zutat, die sich nie mit "Rosmarinzweig" zusammenrechnet.
+ * Bewusst kurz gehalten: "rote Zwiebel" etwa ist eine andere Zutat als
+ * "Zwiebel" und darf nicht gekürzt werden.
+ */
+const FUELLADJEKTIVE = /^(kleine?[nrs]?|mittelgro(ß|ss)e?[nrs]?|gro(ß|ss)e?[nrs]?|frische?[nrs]?|getrocknete?[nrs]?)\s+/i;
+
+/** Trennt ein solches Adjektiv ab und gibt es als Hinweis zurück. */
+function trenneFuelladjektiv(name: string): { rumpf: string; hinweis?: string } {
+  const treffer = name.match(FUELLADJEKTIVE);
+  if (!treffer) return { rumpf: name };
+  const rumpf = name.slice(treffer[0].length).trim();
+  if (!rumpf) return { rumpf: name };
+  return { rumpf, hinweis: treffer[1] };
 }
 
 /** Vereinfacht einen Namen für den Vergleich: klein, ohne Sonderzeichen, ohne Plural-s/-n/-e. */
@@ -174,28 +229,18 @@ export interface GeparsteZutat {
 
 /**
  * Zerlegt eine Zeile wie "500 g Kartoffeln, gewürfelt" in Menge, Einheit,
- * Namen und Zusatz. Ohne erkennbare Menge wird 1 Stück angenommen – die
- * Zeile bleibt so nutzbar, auch wenn die Erkennung nicht perfekt war.
+ * Namen und Zusatz. Nennt die Zeile gar keine Menge ("Salz und Pfeffer"),
+ * wird auch keine erfunden – die Zutat gilt dann als "nach Bedarf".
  */
 export function parseZutatenzeile(zeile: string, bekannteEigene: Ingredient[] = []): GeparsteZutat | null {
-  let bereinigt = zeile.trim().replace(/^[-•*]\s*/, '');
-  if (!bereinigt) return null;
+  const roh = zeile.trim().replace(/^[-•*]\s*/, '');
+  if (!roh) return null;
 
-  // Klammerzusatz am Zeilenende abtrennen: "Tomaten (geschält)" -> Hinweis
-  // "geschält". Nur, wenn davor ein Leerzeichen steht – ohne Leerzeichen
-  // direkt am Wort ("Zwiebel(n)") ist es meist eine Pluralendung und bleibt
-  // Teil des Namens.
-  let klammerHinweis: string | undefined;
-  const klammerMatch = bereinigt.match(/\s\(([^()]+)\)\s*$/);
-  if (klammerMatch) {
-    klammerHinweis = klammerMatch[1].trim();
-    bereinigt = bereinigt.slice(0, klammerMatch.index).trim();
-  }
+  const { rumpf: bereinigt, hinweis: klammerHinweis } = trenneKlammerzusatz(roh);
 
   // Zusatz nach einem Komma abtrennen: "Zwiebel, fein gewürfelt".
   const [hauptteil, ...rest] = bereinigt.split(',');
   const kommaHinweis = rest.join(',').trim() || undefined;
-  const note = [kommaHinweis, klammerHinweis].filter(Boolean).join(' · ') || undefined;
 
   const worte = hauptteil.trim().split(/\s+/);
   let index = 0;
@@ -209,13 +254,24 @@ export function parseZutatenzeile(zeile: string, bekannteEigene: Ingredient[] = 
     index += 1;
   }
 
-  let einheit = parseUnit(worte[index]);
-  if (einheit) index += 1;
+  const einheit = parseUnit(worte[index]);
+  // Steht nach dem Einheitenwort nichts mehr ("2 Knoblauchzehen"), ist es
+  // zugleich der Zutatenname. Es trotzdem zu verbrauchen liesse die Zeile
+  // ohne Namen zurueck – die Zutat fiele stillschweigend aus dem Rezept.
+  const einheitIstAuchName = einheit !== null && index + 1 >= worte.length;
+  if (einheit && !einheitIstAuchName) index += 1;
 
-  const name = worte.slice(index).join(' ').trim();
-  if (!name) return null;
+  const rohName = worte.slice(index).join(' ').trim();
+  if (!rohName) return null;
 
-  const finaleMenge = menge ?? 1;
+  const { rumpf: name, hinweis: adjektivHinweis } = trenneFuelladjektiv(rohName);
+  const note =
+    [adjektivHinweis, kommaHinweis, klammerHinweis].filter(Boolean).join(' · ') || undefined;
+
+  // Ohne Zahl in der Zeile bleibt die Menge offen (0 = "nach Bedarf"); eine
+  // erfundene Menge würde beim Umrechnen auf andere Portionszahlen sonst zu
+  // Unsinn wie "½ Stück Salz und Pfeffer" führen.
+  const finaleMenge = menge ?? OHNE_MENGE;
   const finaleEinheit: Unit = einheit ?? 'Stk';
 
   const bekannt = findeBekannteZutat(name, bekannteEigene);

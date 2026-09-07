@@ -8,7 +8,7 @@ import type {
   WeeklyPlan,
 } from '../types';
 import { INGREDIENT_BY_ID, SHOP_CATEGORY_LABEL, SHOP_CATEGORY_ORDER } from '../data/ingredients';
-import { formatQuantity, roundAmount, toBase, unitFamily } from './quantity';
+import { formatQuantity, istOhneMenge, roundAmount, toBase, unitFamily } from './quantity';
 
 /**
  * Einkaufslisten-Logik.
@@ -101,6 +101,12 @@ export function removeRecipe(list: ShoppingList, recipeId: string): ShoppingList
     const removedShare = item.sources.length ? (item.sources.length - keep.length) / item.sources.length : 1;
     const remaining = item.amount * (1 - removedShare);
     if (keep.length === 0 && !item.manual) continue;
+    // Positionen ohne Menge ("nach Bedarf") haben immer Restmenge 0 – sie
+    // bleiben, solange ein anderes Rezept sie noch braucht.
+    if (istOhneMenge(item.amount)) {
+      items.push({ ...item, sources: keep });
+      continue;
+    }
     if (remaining <= 0.0001) {
       if (item.manual) items.push({ ...item, sources: keep });
       continue;
@@ -176,7 +182,11 @@ export function shoppingListToText(items: ShoppingListItem[], customIngredients:
     for (const item of group.items) {
       const q = itemAmount(item);
       const name = nachschlagen(item.ingredientId, customIngredients)?.name ?? item.ingredientId;
-      lines.push(`- ${formatQuantity(q.amount, q.unit)} ${name}`);
+      lines.push(
+        istOhneMenge(q.amount)
+          ? `- ${name} (nach Bedarf)`
+          : `- ${formatQuantity(q.amount, q.unit)} ${name}`,
+      );
     }
     lines.push('');
   }
