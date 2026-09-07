@@ -44,6 +44,11 @@ export const INGREDIENTS: Ingredient[] = [
   ing('basilikum', 'Basilikum', 'obst-gemuese'),
   ing('ingwer', 'Ingwer', 'obst-gemuese'),
   ing('kuerbis', 'Hokkaido-Kürbis', 'obst-gemuese'),
+  ing('wirsing', 'Wirsing', 'obst-gemuese'),
+  ing('staudensellerie', 'Staudensellerie', 'obst-gemuese'),
+  ing('orange', 'Orange', 'obst-gemuese'),
+  ing('limette', 'Limette', 'obst-gemuese'),
+  ing('salbei', 'Salbei', 'obst-gemuese'),
 
   // --- Fleisch ---
   ing('haehnchenbrust', 'Hähnchenbrustfilet', 'fleisch'),
@@ -51,6 +56,8 @@ export const INGREDIENTS: Ingredient[] = [
   ing('rinderhack', 'Rinderhackfleisch', 'fleisch'),
   ing('gemischtes-hack', 'Gemischtes Hackfleisch', 'fleisch'),
   ing('kochschinken', 'Kochschinken', 'fleisch'),
+  ing('putenbrust', 'Putenbrustfilet', 'fleisch'),
+  ing('wiener-wuerstchen', 'Wiener Würstchen', 'fleisch'),
 
   // --- Milchprodukte ---
   ing('milch', 'Milch', 'milchprodukte'),
@@ -67,6 +74,10 @@ export const INGREDIENTS: Ingredient[] = [
   ing('mozzarella', 'Mozzarella', 'milchprodukte'),
   ing('parmesan', 'Parmesan', 'milchprodukte'),
   ing('feta', 'Feta', 'milchprodukte'),
+  ing('ricotta', 'Ricotta', 'milchprodukte'),
+  ing('huettenkaese', 'Hüttenkäse', 'milchprodukte'),
+  ing('bergkaese', 'Bergkäse', 'milchprodukte'),
+  ing('halloumi', 'Halloumi', 'milchprodukte'),
 
   // --- Eier ---
   ing('ei', 'Eier', 'eier'),
@@ -90,6 +101,11 @@ export const INGREDIENTS: Ingredient[] = [
   ing('glutenfreie-nudeln', 'Glutenfreie Nudeln (Mais/Reis)', 'getreide'),
   ing('glutenfreie-haferflocken', 'Haferflocken (glutenfrei)', 'getreide'),
   ing('mais-tortillas', 'Mais-Tortillas', 'getreide'),
+  ing('griess', 'Weichweizengrieß', 'getreide'),
+  ing('bulgur', 'Bulgur', 'getreide'),
+  ing('polenta', 'Maisgrieß (Polenta)', 'getreide'),
+  ing('spaetzle', 'Spätzle', 'getreide'),
+  ing('lasagneplatten', 'Lasagneplatten', 'getreide'),
   ing('mehl', 'Weizenmehl', 'getreide', true),
   ing('vollkornmehl', 'Vollkornmehl', 'getreide'),
   ing('gnocchi', 'Gnocchi (Kühlregal)', 'getreide'),
@@ -104,6 +120,8 @@ export const INGREDIENTS: Ingredient[] = [
   ing('kokosmilch', 'Kokosmilch', 'konserven'),
   ing('kidneybohnen', 'Kidneybohnen', 'konserven'),
   ing('kichererbsen', 'Kichererbsen', 'konserven'),
+  ing('weisse-bohnen', 'Weiße Bohnen', 'konserven'),
+  ing('braune-linsen', 'Braune Linsen', 'konserven'),
   ing('mais', 'Mais', 'konserven'),
   ing('apfelmus', 'Apfelmus ohne Zuckerzusatz', 'konserven'),
 
@@ -122,6 +140,8 @@ export const INGREDIENTS: Ingredient[] = [
   ing('muskat', 'Muskatnuss', 'gewuerze', true),
   ing('vanille', 'Gemahlene Vanille', 'gewuerze', true),
   ing('lorbeerblatt', 'Lorbeerblatt', 'gewuerze', true),
+  ing('majoran', 'Majoran', 'gewuerze', true),
+  ing('kuemmel', 'Kümmel', 'gewuerze', true),
   ing('gemuesebruehe', 'Gemüsebrühe (Pulver)', 'gewuerze', true),
   ing('huehnerbruehe', 'Hühnerbrühe (Pulver)', 'gewuerze', true),
   // Bruehpulver enthaelt sehr oft Weizen – fuer glutenfreie Rezepte deshalb
@@ -131,6 +151,11 @@ export const INGREDIENTS: Ingredient[] = [
   ing('olivenoel', 'Olivenöl', 'gewuerze', true),
   ing('rapsoel', 'Rapsöl', 'gewuerze', true),
   ing('senf', 'Senf (ohne Zuckerzusatz)', 'gewuerze', true),
+  ing('sesamoel', 'Sesamöl', 'gewuerze', true),
+  ing('apfelessig', 'Apfelessig', 'gewuerze', true),
+  // Sojasauce wird aus Weizen gebraut – fuer glutenfreie Gerichte Tamari.
+  ing('sojasauce', 'Sojasauce', 'gewuerze', true),
+  ing('trockenhefe', 'Trockenhefe', 'gewuerze', true),
   ing('backpulver', 'Backpulver', 'gewuerze', true),
 
   // --- Tiefkuehl ---
@@ -144,6 +169,10 @@ export const INGREDIENTS: Ingredient[] = [
   ing('mandeln', 'Gemahlene Mandeln', 'sonstiges'),
   ing('sonnenblumenkerne', 'Sonnenblumenkerne', 'sonstiges'),
   ing('cashewkerne', 'Cashewkerne', 'sonstiges'),
+  ing('walnuesse', 'Walnüsse', 'sonstiges'),
+  ing('kuerbiskerne', 'Kürbiskerne', 'sonstiges'),
+  ing('sesam', 'Sesam', 'sonstiges'),
+  ing('kokosraspeln', 'Kokosraspeln', 'sonstiges'),
 ];
 
 export const INGREDIENT_BY_ID: Record<string, Ingredient> = Object.fromEntries(

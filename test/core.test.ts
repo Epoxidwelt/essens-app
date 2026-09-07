@@ -209,7 +209,9 @@ describe('Filter & Suche', () => {
 
   it('findet Rezepte per Textsuche', () => {
     expect(filterRecipes(RECIPES, { query: 'brokkoli' }).length).toBeGreaterThan(0);
-    expect(filterRecipes(RECIPES, { query: 'pizza' })).toHaveLength(0);
+    // Ein Begriff, der in keinem Rezept vorkommt (frueher stand hier "pizza" –
+    // die gibt es inzwischen).
+    expect(filterRecipes(RECIPES, { query: 'schokoladentorte' })).toHaveLength(0);
   });
 });
 

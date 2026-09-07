@@ -194,7 +194,9 @@ describe('Mehrzeiliger Zutatentext', () => {
       'haehnchenbrust',
       'moehre',
       'zwiebel',
-      'eigene-sojasauce',
+      // Sojasauce gehoert inzwischen zu den Stammzutaten, wird also nicht
+      // mehr neu angelegt.
+      'sojasauce',
       'ingwer',
     ]);
   });
