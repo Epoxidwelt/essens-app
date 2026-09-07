@@ -82,6 +82,14 @@ export const INGREDIENTS: Ingredient[] = [
   ing('quinoa', 'Quinoa', 'getreide'),
   ing('rote-linsen', 'Rote Linsen', 'getreide'),
   ing('haferflocken', 'Haferflocken', 'getreide'),
+  // --- Glutenfreie Alternativen ---
+  // Eigene Eintraege statt Varianten der Weizenprodukte: Auf der Einkaufsliste
+  // muss stehen, welche Packung wirklich in den Wagen gehoert.
+  ing('hirse', 'Hirse', 'getreide'),
+  ing('buchweizenmehl', 'Buchweizenmehl', 'getreide'),
+  ing('glutenfreie-nudeln', 'Glutenfreie Nudeln (Mais/Reis)', 'getreide'),
+  ing('glutenfreie-haferflocken', 'Haferflocken (glutenfrei)', 'getreide'),
+  ing('mais-tortillas', 'Mais-Tortillas', 'getreide'),
   ing('mehl', 'Weizenmehl', 'getreide', true),
   ing('vollkornmehl', 'Vollkornmehl', 'getreide'),
   ing('gnocchi', 'Gnocchi (Kühlregal)', 'getreide'),
@@ -116,6 +124,10 @@ export const INGREDIENTS: Ingredient[] = [
   ing('lorbeerblatt', 'Lorbeerblatt', 'gewuerze', true),
   ing('gemuesebruehe', 'Gemüsebrühe (Pulver)', 'gewuerze', true),
   ing('huehnerbruehe', 'Hühnerbrühe (Pulver)', 'gewuerze', true),
+  // Bruehpulver enthaelt sehr oft Weizen – fuer glutenfreie Rezepte deshalb
+  // ein eigener Eintrag, damit die Einkaufsliste die richtige Packung nennt.
+  ing('gemuesebruehe-glutenfrei', 'Gemüsebrühe (glutenfrei)', 'gewuerze', true),
+  ing('huehnerbruehe-glutenfrei', 'Hühnerbrühe (glutenfrei)', 'gewuerze', true),
   ing('olivenoel', 'Olivenöl', 'gewuerze', true),
   ing('rapsoel', 'Rapsöl', 'gewuerze', true),
   ing('senf', 'Senf (ohne Zuckerzusatz)', 'gewuerze', true),

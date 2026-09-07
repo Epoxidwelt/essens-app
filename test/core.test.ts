@@ -23,9 +23,16 @@ import type { ShoppingList, WeeklyPlan } from '../src/types';
 const emptyList = (): ShoppingList => createInitialState().shoppingList;
 
 describe('Rezeptdaten', () => {
-  it('enthält 30 Rezepte, davon mindestens 15 One-Pot-Gerichte', () => {
-    expect(RECIPES).toHaveLength(30);
+  it('enthält mindestens 30 Rezepte, davon mindestens 15 One-Pot-Gerichte', () => {
+    // Untergrenzen statt fester Zahlen: Rezepte kommen dazu, die Zusage lautet
+    // "mindestens".
+    expect(RECIPES.length).toBeGreaterThanOrEqual(30);
     expect(RECIPES.filter((r) => r.onePot).length).toBeGreaterThanOrEqual(15);
+  });
+
+  it('vergibt jede Rezept-id nur einmal', () => {
+    const ids = RECIPES.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('ist durchgängig ohne zugesetzten Zucker und ohne Fisch', () => {

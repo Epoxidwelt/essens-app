@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Recipe } from '../types';
 import { useApp } from '../store/AppContext';
+import { matchesQuery } from '../lib/filters';
 import { Sheet } from './Sheet';
 
 /** Auswahl-Sheet, um dem Wochenplan ein Rezept zuzuordnen. */
@@ -15,13 +16,12 @@ export function RecipePicker({
 }) {
   const { recipes } = useApp();
   const [query, setQuery] = useState('');
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return recipes;
-    return recipes.filter(
-      (r) => r.name.toLowerCase().includes(q) || r.description.toLowerCase().includes(q),
-    );
-  }, [query, recipes]);
+  // Dieselbe Suche wie auf der Rezeptseite – damit auch hier "glutenfrei",
+  // "one pot" oder eine Kategorie etwas findet.
+  const results = useMemo(
+    () => recipes.filter((r) => matchesQuery(r, query)),
+    [query, recipes],
+  );
 
   return (
     <Sheet title={title} onClose={onClose}>
@@ -52,6 +52,7 @@ export function RecipePicker({
             <span style={{ fontWeight: 650, display: 'block' }}>{recipe.name}</span>
             <span className="hint">
               ⏱️ {recipe.timeMinutes} Min{recipe.nutrition.kcal > 0 ? ` · ${recipe.nutrition.kcal} kcal` : ''}
+              {recipe.glutenFree ? ' · 🌾 glutenfrei' : ''}
             </span>
           </span>
         </button>

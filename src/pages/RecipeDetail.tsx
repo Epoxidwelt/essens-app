@@ -107,6 +107,7 @@ export function RecipeDetail() {
           {recipe.noAddedSugar && <span className="tag tag-green">✓ Ohne zugesetzten Zucker</span>}
           {recipe.kidFriendly && <span className="tag">👨‍👩‍👧‍👦 Kinderfreundlich</span>}
           {recipe.onePot && <span className="tag tag-accent">🥘 One Pot</span>}
+          {recipe.glutenFree && <span className="tag tag-green">🌾 Glutenfrei</span>}
           <span className="tag">📶 {recipe.difficulty}</span>
           {eigenesRezept && <span className="tag">{quellenEmoji} Eigenes Rezept</span>}
         </div>
@@ -247,6 +248,14 @@ export function RecipeDetail() {
           {factor !== 1 && (
             <p className="hint" style={{ marginTop: 10 }}>
               Mengen umgerechnet von {recipe.baseServings} auf {servings} Portionen.
+            </p>
+          )}
+          {recipe.glutenFree && (
+            <p className="hint" style={{ marginTop: 10 }}>
+              🌾 Die Zutaten dieses Rezepts enthalten kein Gluten. Bei abgepackten
+              Sachen – Brühe, Haferflocken, Nudeln, Senf – trotzdem kurz auf die
+              Packung schauen: Nur was ausdrücklich „glutenfrei" trägt, ist es
+              auch sicher.
             </p>
           )}
         </div>

@@ -41,6 +41,7 @@ export function AddRecipe() {
   const [ohneZucker, setOhneZucker] = useState(true);
   const [kinderfreundlich, setKinderfreundlich] = useState(true);
   const [onePot, setOnePot] = useState(false);
+  const [glutenfrei, setGlutenfrei] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | undefined>(undefined);
 
   // YouTube-Zwischenschritt
@@ -253,6 +254,7 @@ export function AddRecipe() {
         noAddedSugar: ohneZucker,
         kidFriendly: kinderfreundlich,
         onePot,
+        ...(glutenfrei ? { glutenFree: true } : {}),
       },
       neueZutaten,
     );
@@ -545,10 +547,22 @@ export function AddRecipe() {
                   <input type="checkbox" checked={onePot} onChange={(e) => setOnePot(e.target.checked)} />
                   <span>🥘 One Pot</span>
                 </label>
+                <label className="row" style={{ gap: 10, cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={glutenfrei}
+                    onChange={(e) => setGlutenfrei(e.target.checked)}
+                  />
+                  <span>🌾 Glutenfrei</span>
+                </label>
               </div>
               <p className="hint" style={{ marginTop: 10 }}>
                 Nährwerte sind bei eigenen Rezepten nicht bekannt und werden in der App als
                 „unbekannt" angezeigt.
+              </p>
+              <p className="hint" style={{ marginTop: 6 }}>
+                „Glutenfrei" bitte nur setzen, wenn du die Zutaten selbst durchgegangen bist –
+                der Haken wird als verlässliche Angabe angezeigt.
               </p>
             </div>
 

@@ -127,6 +127,13 @@ export interface Recipe {
   noAddedSugar: boolean;
   kidFriendly: boolean;
   onePot: boolean;
+  /**
+   * Nur gesetzt, wenn das Rezept Zutat fuer Zutat geprueft wurde. Fehlt das
+   * Feld, heisst das "nicht geprueft" – nicht "enthaelt Gluten". Bewusst so
+   * herum: ein faelschlich gesetztes Haekchen waere fuer jemanden mit
+   * Zoeliakie gefaehrlich, ein fehlendes nur unbequem.
+   */
+  glutenFree?: boolean;
   tips?: string;
   /** Gesetzt, wenn das Rezept aus einem YouTube-Video übernommen wurde. */
   videoUrl?: string;

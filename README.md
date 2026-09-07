@@ -59,7 +59,7 @@ Weitere Befehle:
 
 - **Startseite** mit „Was möchtest du heute essen?“, Suchfeld mit Live-Vorschlägen
   und den vier Kacheln Rezepte / Lecker / Einkaufsliste / Wochenplan
-- **30 Rezepte**, davon 17 One-Pot-Gerichte — alle ohne zugesetzten Zucker und ohne Fisch
+- **39 Rezepte**, davon 20 One-Pot-Gerichte und 13 glutenfreie — alle ohne zugesetzten Zucker und ohne Fisch
 - **📷 Eigene Rezepte hinzufügen**: Foto oder PDF hochladen — die App liest Titel,
   Zutaten und Zubereitung automatisch heraus (Texterkennung läuft komplett im
   Browser, es wird nichts hochgeladen). Vor dem Speichern wird alles in einem
@@ -113,7 +113,7 @@ essens-app/
 │   ├── types/index.ts        Datenmodell (Recipes, Ingredients, Favorites, …)
 │   ├── data/
 │   │   ├── ingredients.ts    Zutaten-Stammdaten + Supermarkt-Abteilungen
-│   │   └── recipes.ts        30 Rezepte
+│   │   └── recipes.ts        39 Rezepte
 │   ├── lib/
 │   │   ├── quantity.ts       Portionen skalieren, Einheiten, Formatierung
 │   │   ├── shopping.ts       Einkaufsliste: Zusammenrechnen, Gruppieren, Teilen

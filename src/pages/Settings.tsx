@@ -233,6 +233,7 @@ export function Settings() {
           <p className="hint" style={{ marginTop: 6 }}>
             {plural(RECIPES.length, 'mitgeliefertes Rezept', 'mitgelieferte Rezepte')} ohne
             zugesetzten Zucker und ohne Fisch · davon {RECIPES.filter((r) => r.onePot).length} One-Pot-Gerichte
+            und {RECIPES.filter((r) => r.glutenFree).length} glutenfreie
             {state.customRecipes.length > 0 &&
               ` · ${plural(state.customRecipes.length, 'eigenes Rezept', 'eigene Rezepte')} hinzugefügt`}
           </p>

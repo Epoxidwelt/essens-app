@@ -11,6 +11,7 @@ export const FILTERS: FilterDef[] = [
   { id: 'favoriten', label: '❤️ Favoriten', test: (r, favs) => favs.has(r.id) },
   { id: 'kinderfreundlich', label: '👨‍👩‍👧‍👦 Kinderfreundlich', test: (r) => r.kidFriendly },
   { id: 'one-pot', label: '🥘 One Pot', test: (r) => r.onePot },
+  { id: 'glutenfrei', label: '🌾 Glutenfrei', test: (r) => r.glutenFree === true },
   { id: 'haehnchen', label: '🍗 Hähnchen', test: (r) => r.categories.includes('haehnchen') },
   { id: 'hackfleisch', label: '🥩 Hackfleisch', test: (r) => r.categories.includes('hackfleisch') },
   { id: 'vegetarisch', label: '🌱 Vegetarisch', test: (r) => r.categories.includes('vegetarisch') },
@@ -35,6 +36,7 @@ export function matchesQuery(recipe: Recipe, query: string): boolean {
     recipe.description,
     ...recipe.categories,
     ...(recipe.onePot ? ['one pot'] : []),
+    ...(recipe.glutenFree ? ['glutenfrei', 'gluten'] : []),
   ]
     .join(' ')
     .toLowerCase();
