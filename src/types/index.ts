@@ -48,6 +48,12 @@ export interface Ingredient {
   /** Vorratszutat (Salz, Oel ...) – kann in der Einkaufsliste ausgeblendet werden. */
   pantry?: boolean;
   /**
+   * Bringt spuerbar Zucker mit (Obst, Obstmus). Alle Rezepte der App sind ohne
+   * *zugesetzten* Zucker; dieses Feld trennt zusaetzlich die Gerichte ab, die
+   * ganz ohne Suesse auskommen.
+   */
+  sweet?: boolean;
+  /**
    * Platzhalter fuer die spaetere Haendleranbindung: hier landen spaeter
    * GTIN/EAN oder haendlerspezifische Produkt-IDs.
    */

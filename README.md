@@ -59,7 +59,8 @@ Weitere Befehle:
 
 - **Startseite** mit „Was möchtest du heute essen?“, Suchfeld mit Live-Vorschlägen
   und den vier Kacheln Rezepte / Lecker / Einkaufsliste / Wochenplan
-- **89 Rezepte**, davon 41 One-Pot-Gerichte, 37 glutenfreie und 15 Frühstücksideen — alle ohne zugesetzten Zucker und ohne Fisch
+- **89 Rezepte**, davon 41 One-Pot-Gerichte, 37 glutenfreie, 76 ganz ohne süße Zutaten und 15 Frühstücksideen — alle ohne zugesetzten Zucker und ohne Fisch
+- **Rubriken als Kacheln**: Ernährung (zuckerfrei, glutenfrei, vegetarisch …), Anlass (Frühstück, unter 20 Min, One Pot …) und Hauptzutat. Jede Kachel zeigt, wie viele Rezepte sie liefert; mehrere lassen sich kombinieren
 - **📷 Eigene Rezepte hinzufügen**: Foto oder PDF hochladen — die App liest Titel,
   Zutaten und Zubereitung automatisch heraus (Texterkennung läuft komplett im
   Browser, es wird nichts hochgeladen). Vor dem Speichern wird alles in einem

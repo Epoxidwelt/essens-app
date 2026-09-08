@@ -16,6 +16,11 @@ function ing(
   return { id, name, category, ...(pantry ? { pantry: true } : {}) };
 }
 
+/** Wie ing(), aber fuer Zutaten, die spuerbar Zucker mitbringen (Obst, Obstmus). */
+function suess(id: string, name: string, category: ShopCategory): Ingredient {
+  return { id, name, category, sweet: true };
+}
+
 export const INGREDIENTS: Ingredient[] = [
   // --- Obst & Gemuese ---
   ing('zwiebel', 'Zwiebel', 'obst-gemuese'),
@@ -36,8 +41,8 @@ export const INGREDIENTS: Ingredient[] = [
   ing('babyspinat', 'Babyspinat', 'obst-gemuese'),
   ing('salatgurke', 'Salatgurke', 'obst-gemuese'),
   ing('kopfsalat', 'Kopfsalat', 'obst-gemuese'),
-  ing('apfel', 'Apfel', 'obst-gemuese'),
-  ing('banane', 'Banane', 'obst-gemuese'),
+  suess('apfel', 'Apfel', 'obst-gemuese'),
+  suess('banane', 'Banane', 'obst-gemuese'),
   ing('zitrone', 'Zitrone', 'obst-gemuese'),
   ing('petersilie', 'Petersilie', 'obst-gemuese'),
   ing('schnittlauch', 'Schnittlauch', 'obst-gemuese'),
@@ -46,7 +51,7 @@ export const INGREDIENTS: Ingredient[] = [
   ing('kuerbis', 'Hokkaido-Kürbis', 'obst-gemuese'),
   ing('wirsing', 'Wirsing', 'obst-gemuese'),
   ing('staudensellerie', 'Staudensellerie', 'obst-gemuese'),
-  ing('orange', 'Orange', 'obst-gemuese'),
+  suess('orange', 'Orange', 'obst-gemuese'),
   ing('limette', 'Limette', 'obst-gemuese'),
   ing('salbei', 'Salbei', 'obst-gemuese'),
 
@@ -123,7 +128,7 @@ export const INGREDIENTS: Ingredient[] = [
   ing('weisse-bohnen', 'Weiße Bohnen', 'konserven'),
   ing('braune-linsen', 'Braune Linsen', 'konserven'),
   ing('mais', 'Mais', 'konserven'),
-  ing('apfelmus', 'Apfelmus ohne Zuckerzusatz', 'konserven'),
+  suess('apfelmus', 'Apfelmus ohne Zuckerzusatz', 'konserven'),
 
   // --- Gewuerze & Oele (Vorrat) ---
   ing('salz', 'Salz', 'gewuerze', true),
@@ -162,7 +167,7 @@ export const INGREDIENTS: Ingredient[] = [
   ing('erbsen-tk', 'Erbsen (TK)', 'tiefkuehl'),
   ing('erbsen-moehren-tk', 'Erbsen & Möhren (TK)', 'tiefkuehl'),
   ing('spinat-tk', 'Blattspinat (TK)', 'tiefkuehl'),
-  ing('beeren-tk', 'Beerenmischung (TK)', 'tiefkuehl'),
+  suess('beeren-tk', 'Beerenmischung (TK)', 'tiefkuehl'),
 
   // --- Sonstiges ---
   ing('wasser', 'Wasser', 'sonstiges', true),

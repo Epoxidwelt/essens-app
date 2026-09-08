@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { matchesQuery } from '../lib/filters';
+import { FILTERS, filterRecipes, matchesQuery } from '../lib/filters';
 import { plural } from '../lib/text';
 import { useApp } from '../store/AppContext';
 import { RecipeCard } from '../components/RecipeCard';
@@ -22,6 +22,19 @@ export function Home() {
 
   const openShoppingItems = state.shoppingList.items.filter((i) => !i.checked).length;
   const plannedMeals = state.weeklyPlan.items.length;
+
+  // Vier Rubriken als Direkteinstieg – die, nach denen im Alltag am ehesten
+  // gefragt wird. Alle weiteren stehen auf der Rezeptseite.
+  const schnellRubriken = useMemo(() => {
+    const ids = ['zuckerfrei', 'glutenfrei', 'vegetarisch', 'unter-20'];
+    return ids
+      .map((id) => FILTERS.find((x) => x.id === id))
+      .filter((x): x is (typeof FILTERS)[number] => Boolean(x))
+      .map((rubrik) => ({
+        rubrik,
+        anzahl: filterRecipes(recipes, { activeFilters: [rubrik.id] }).length,
+      }));
+  }, [recipes]);
 
   const quickRecipes = useMemo(() => recipes.filter((r) => r.timeMinutes <= 20).slice(0, 4), [recipes]);
   const onePotRecipes = useMemo(() => recipes.filter((r) => r.onePot).slice(0, 4), [recipes]);
@@ -149,6 +162,25 @@ export function Home() {
             </span>
           </span>
         </Link>
+      </div>
+
+      <div className="section-title">
+        <h2>Wonach ist dir?</h2>
+        <Link to="/rezepte" className="link">alle Rubriken</Link>
+      </div>
+      <div className="rubrik-grid">
+        {schnellRubriken.map(({ rubrik, anzahl }) => (
+          <Link
+            key={rubrik.id}
+            to={`/rezepte?filter=${rubrik.id}`}
+            className="rubrik"
+          >
+            <span className="rubrik-emoji" aria-hidden>{rubrik.emoji}</span>
+            <span className="rubrik-name">{rubrik.name}</span>
+            <span className="rubrik-zahl">{plural(anzahl, 'Rezept', 'Rezepte')}</span>
+            {rubrik.hinweis && <span className="rubrik-hinweis">{rubrik.hinweis}</span>}
+          </Link>
+        ))}
       </div>
 
       {todayEntries.length > 0 && (
